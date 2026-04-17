@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Enterprise-scale observability stack</title>
+<link rel="stylesheet" href="../../advisory-knowledge/styles/bos-visual.css">
+<style>
+  html, body { margin: 0; padding: 0; }
+
+  body.vfs-slide {
+    width: 1280px;
+    height: 720px;
+    padding: 0;
+    overflow: hidden;
+    background: #E6EBF0;
+    position: relative;
+    font-family: var(--font-family);
+  }
+
+  /* Below-waterline fill — flat, deep slate */
+  .water {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 32%;
+    bottom: 0;
+    background: #0F2B3F;
+  }
+
+  .title-wrap {
+    position: absolute;
+    top: 22px;
+    left: 56px;
+    right: 56px;
+    z-index: 10;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 1px solid #94A3B8;
+    padding-bottom: 10px;
+  }
+
+  .title {
+    font-size: 22px;
+    font-weight: var(--weight-bold);
+    color: #0F2438;
+    margin: 0;
+    letter-spacing: -0.1px;
+  }
+
+  .title-meta {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: #475569;
+    letter-spacing: 0.4px;
+  }
+
+  .iceberg-stage {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+  }
+
+  .dashboard-callout {
+    position: absolute;
+    top: 92px;
+    left: 72px;
+    z-index: 20;
+    border: 1px solid #475569;
+    background: #FFFFFF;
+    padding: 8px 12px;
+    min-width: 180px;
+  }
+
+  .dashboard-callout .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: var(--weight-bold);
+    color: #475569;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+
+  .dashboard-callout .lbl {
+    font-size: 20px;
+    font-weight: var(--weight-bold);
+    color: #0F2438;
+    letter-spacing: 0.1px;
+    line-height: 1.1;
+  }
+
+  .dashboard-callout .sub {
+    font-size: 11px;
+    font-weight: var(--weight-regular);
+    color: #475569;
+    margin-top: 3px;
+    line-height: 1.3;
+  }
+
+  .dashboard-callout .tech {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: #64748B;
+    margin-top: 5px;
+    border-top: 1px dashed #CBD5E1;
+    padding-top: 4px;
+  }
+
+  .waterline-tag {
+    position: absolute;
+    top: 218px;
+    left: 56px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: var(--weight-bold);
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: #0F2438;
+    background: #E6EBF0;
+    padding: 2px 8px;
+    border: 1px solid #475569;
+    z-index: 12;
+  }
+
+  .waterline-tag-below {
+    position: absolute;
+    top: 244px;
+    left: 56px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: var(--weight-bold);
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: #E6EBF0;
+    background: #0F2B3F;
+    padding: 2px 8px;
+    border: 1px solid #94A3B8;
+    z-index: 12;
+  }
+
+  .section-label {
+    position: absolute;
+    top: 250px;
+    right: 56px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: #94A3B8;
+    z-index: 12;
+  }
+
+  .below-panel {
+    position: absolute;
+    left: 52px;
+    right: 52px;
+    top: 282px;
+    z-index: 20;
+  }
+
+  .below-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px 14px;
+  }
+
+  .layer-card {
+    background: #17364E;
+    border: 1px solid #3A5670;
+    border-left: 3px solid #60A5FA;
+    padding: 12px 14px;
+    color: #E2E8F0;
+    font-family: var(--font-family);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .layer-card .idx {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: #60A5FA;
+    letter-spacing: 0.8px;
+    font-weight: var(--weight-bold);
+  }
+
+  .layer-card .name {
+    font-size: 17px;
+    font-weight: var(--weight-bold);
+    color: #FFFFFF;
+    letter-spacing: 0.1px;
+    line-height: 1.1;
+  }
+
+  .layer-card .role {
+    font-size: 12px;
+    color: #CBD5E1;
+    line-height: 1.35;
+    margin-top: 1px;
+  }
+
+  .layer-card .divider {
+    height: 1px;
+    background: #3A5670;
+    margin: 6px 0 4px;
+  }
+
+  .layer-card .tech {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: #93C5FD;
+    line-height: 1.4;
+    letter-spacing: 0.2px;
+  }
+
+  .footnote {
+    position: absolute;
+    bottom: 10px;
+    left: 56px;
+    right: 56px;
+    text-align: left;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: #94A3B8;
+    letter-spacing: 0.3px;
+    border-top: 1px solid #334155;
+    padding-top: 6px;
+    display: flex;
+    justify-content: space-between;
+  }
+</style>
+</head>
+<body class="vfs-slide">
+
+  <!-- Below-waterline water fill -->
+  <div class="water"></div>
+
+  <!-- Title bar -->
+  <div class="title-wrap">
+    <div class="title">What sits beneath any dashboard at enterprise scale?</div>
+    <div class="title-meta">STACK-VIEW · 6 LAYERS</div>
+  </div>
+
+  <!-- Iceberg silhouette (structural, subtle) -->
+  <svg class="iceberg-stage" viewBox="0 0 1280 720" preserveAspectRatio="none" aria-hidden="true">
+    <!-- Waterline -->
+    <line x1="0" y1="230.4" x2="1280" y2="230.4" stroke="#0F2438" stroke-width="1.5" opacity="0.6"/>
+
+    <!-- Iceberg above water -->
+    <path d="
+      M 570 230.4
+      L 582 198
+      L 598 162
+      L 618 128
+      L 640 110
+      L 660 135
+      L 680 162
+      L 696 196
+      L 708 215
+      L 718 230.4
+      Z
+    " fill="#FFFFFF" stroke="#0F2438" stroke-width="1.5" stroke-linejoin="round"/>
+
+    <!-- Shadow on right side of above-water -->
+    <path d="
+      M 640 110
+      L 660 135
+      L 680 162
+      L 696 196
+      L 708 215
+      L 718 230.4
+      L 670 230.4
+      L 660 200
+      L 650 160
+      L 640 110
+      Z
+    " fill="#CBD5E1" opacity="0.8"/>
+
+    <!-- Leader line from Dashboard callout to tip peak -->
+    <line x1="252" y1="115" x2="635" y2="112" stroke="#0F2438" stroke-width="1.25" opacity="0.85"/>
+    <circle cx="640" cy="110" r="3.5" fill="#0F2438"/>
+
+    <!-- Iceberg below water — subtle silhouette outline only -->
+    <path d="
+      M 570 230.4
+      L 440 272
+      L 355 325
+      L 290 395
+      L 255 475
+      L 240 560
+      L 252 640
+      L 298 700
+      L 380 720
+      L 500 720
+      L 780 720
+      L 900 720
+      L 985 700
+      L 1040 650
+      L 1060 565
+      L 1055 475
+      L 1015 390
+      L 940 312
+      L 845 258
+      L 745 236
+      L 718 230.4
+    " fill="none" stroke="#3A5670" stroke-width="1.5" stroke-linejoin="round" opacity="0.85" stroke-dasharray="0"/>
+  </svg>
+
+  <!-- Dashboard callout -->
+  <div class="dashboard-callout">
+    <div class="eyebrow">The visible tip</div>
+    <div class="lbl">Dashboard</div>
+    <div class="sub">The artifact everyone sees. Evaluated. Screenshot. Shared.</div>
+    <div class="tech">HAND-BUILT · PER TEAM · PER LOB</div>
+  </div>
+
+  <!-- Waterline markers -->
+  <div class="waterline-tag">Above · built &amp; visible</div>
+  <div class="waterline-tag-below">Below · not yet built</div>
+  <div class="section-label">— what holds up the dashboard —</div>
+
+  <!-- Below-water component cards -->
+  <div class="below-panel">
+    <div class="below-grid">
+
+      <div class="layer-card">
+        <div class="idx">L1 · DATA MODEL</div>
+        <div class="name">System of Record</div>
+        <div class="role">Normalized schema — the shape of business observability information, independent of any tool that consumes it.</div>
+        <div class="divider"></div>
+        <div class="tech">Queryable definitions · portable across tools<br>OpenSLO-aligned · replaces spreadsheets &amp; wiki prose</div>
+      </div>
+
+      <div class="layer-card">
+        <div class="idx">L2 · FACTORY</div>
+        <div class="name">Artifact Production</div>
+        <div class="role">Structured definitions → operational artifacts via parallel production lines sharing one data model.</div>
+        <div class="divider"></div>
+        <div class="tech">5 lines · dashboards · alerts<br>playbooks · stories · documentation</div>
+      </div>
+
+      <div class="layer-card">
+        <div class="idx">L3 · GOVERNANCE</div>
+        <div class="name">Lifecycle &amp; Audit</div>
+        <div class="role">Who created what, when, and is it still accurate. Closes the "tribal knowledge" failure mode.</div>
+        <div class="divider"></div>
+        <div class="tech">Known owner · known review date · enforced validity<br>answers: who owns this? is it still right?</div>
+      </div>
+
+      <div class="layer-card">
+        <div class="idx">L4 · OPERATING MODEL</div>
+        <div class="name">Ownership Separation</div>
+        <div class="role">Structural role separation. Platform alone cannot produce business context — the PO is the source.</div>
+        <div class="divider"></div>
+        <div class="tech">PO defines · Dev measures · Platform runs<br>right person owns the right content</div>
+      </div>
+
+      <div class="layer-card">
+        <div class="idx">L5 · ADOPTION MECHANISM</div>
+        <div class="name">Practice Distribution</div>
+        <div class="role">How a team goes from "not doing this" to "doing this." Determines adoption speed and quality.</div>
+        <div class="divider"></div>
+        <div class="tech">AI walks PO through capture<br>PO validates output · doesn't author from scratch</div>
+      </div>
+
+      <div class="layer-card">
+        <div class="idx">L6 · LIFECYCLE MGMT</div>
+        <div class="name">Staleness Defense</div>
+        <div class="role">Definitions decay. Without a lifecycle, last year's dashboard silently answers the wrong question.</div>
+        <div class="divider"></div>
+        <div class="tech">draft → active → maintenance → deprecated → retired<br>review cadence · deprecation path</div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="footnote">
+    <span>Every team that has built a point solution has built above the line. None have built below it.</span>
+    <span>SCALE REALITY: manual at n=1 · strained at n≈50 · impossible at n=350</span>
+  </div>
+
+</body>
+</html>
