@@ -44,7 +44,6 @@
 
   .slide {
     background: var(--bg);
-    aspect-ratio: 16 / 9;
     border: 1px solid var(--card-border);
     border-radius: 6px;
     padding: 36px 48px 28px;
@@ -75,8 +74,6 @@
     display: grid;
     grid-template-columns: repeat(6, 1fr);
     gap: 14px;
-    flex: 1;
-    min-height: 0;
   }
 
   .stage {
@@ -129,7 +126,6 @@
     color: var(--muted);
     font-size: 12px;
     line-height: 1.45;
-    flex: 1;
   }
   .stage-divider {
     height: 1px;
@@ -157,9 +153,7 @@
     display: grid;
     grid-template-columns: 1fr 56px 1.5fr 56px 1fr;
     gap: 0;
-    flex: 1;
-    align-items: stretch;
-    min-height: 0;
+    align-items: center;
   }
 
   .col-header {
