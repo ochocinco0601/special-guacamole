@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Business Observability Handbook</title>
+<style>
+  :root {
+    --bg: #fafafa;
+    --surface: #ffffff;
+    --text: #1a1a1a;
+    --text-secondary: #555;
+    --accent: #2563eb;
+    --accent-light: #eff6ff;
+    --border: #e5e7eb;
+    --border-strong: #d1d5db;
+    --layer1: #dc2626;
+    --layer2: #ea580c;
+    --layer3: #2563eb;
+    --layer4: #7c3aed;
+    --nav-width: 220px;
+    --content-max: 820px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    font-size: 13.5px;
+  }
+
+  /* --- NAV --- */
+  nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: var(--nav-width);
+    height: 100vh;
+    overflow-y: auto;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 16px 12px;
+    z-index: 10;
+  }
+
+  nav .nav-title {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--accent);
+    margin-bottom: 14px;
+  }
+
+  nav .nav-section {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+    margin: 12px 0 4px;
+  }
+
+  nav a {
+    display: block;
+    font-size: 11.5px;
+    color: var(--text);
+    text-decoration: none;
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-bottom: 0;
+  }
+
+  nav a:hover { background: var(--accent-light); color: var(--accent); }
+
+  /* --- MAIN --- */
+  main {
+    margin-left: var(--nav-width);
+    max-width: var(--content-max);
+    padding: 24px 32px 60px;
+  }
+
+  h1 {
+    font-size: 23px;
+    font-weight: 700;
+    margin: 0 0 2px;
+    letter-spacing: -0.01em;
+  }
+
+  h1 + .subtitle {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 18px;
+    line-height: 1.4;
+  }
+
+  h2 {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 28px 0 8px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+
+  h2:first-of-type { border-top: none; }
+
+  h3 {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 18px 0 6px;
+  }
+
+  h4 {
+    font-size: 13.5px;
+    font-weight: 600;
+    margin: 12px 0 4px;
+  }
+
+  p { margin: 0 0 7px; }
+
+  .lead {
+    font-size: 13.5px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+  }
+
+  strong { font-weight: 600; }
+
+  /* --- TABLES --- */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 6px 0 14px;
+    font-size: 12.5px;
+  }
+
+  th, td {
+    text-align: left;
+    padding: 4px 8px;
+    border: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  th {
+    background: #f3f4f6;
+    font-weight: 600;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  /* --- CHAIN DIAGRAM --- */
+  .chain {
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 10px 14px;
+    font-family: 'SFMono-Regular', 'Cascadia Code', 'Consolas', monospace;
+    font-size: 12px;
+    line-height: 1.8;
+    margin: 6px 0 12px;
+    white-space: pre;
+    overflow-x: auto;
+  }
+
+  /* --- LIFECYCLE SPINE --- */
+  .lifecycle-spine {
+    display: flex;
+    gap: 3px;
+    margin: 8px 0 14px;
+    flex-wrap: wrap;
+  }
+
+  .lifecycle-spine .stage {
+    flex: 1;
+    min-width: 110px;
+    text-align: center;
+    padding: 7px 4px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .lifecycle-spine .stage .label { display: block; font-size: 10px; font-weight: 400; margin-top: 1px; opacity: 0.8; }
+
+  .stage-define { background: #dbeafe; color: #1e40af; }
+  .stage-implement { background: #fef3c7; color: #92400e; }
+  .stage-enforce { background: #fce7f3; color: #9d174d; }
+  .stage-observe { background: #d1fae5; color: #065f46; }
+  .stage-respond { background: #ede9fe; color: #5b21b6; }
+
+  .arrow { align-self: center; font-size: 18px; color: var(--text-secondary); flex: 0; min-width: auto; }
+
+  /* --- CALLOUT --- */
+  .callout {
+    background: var(--accent-light);
+    border-left: 3px solid var(--accent);
+    padding: 7px 12px;
+    margin: 6px 0 10px;
+    border-radius: 0 4px 4px 0;
+    font-size: 12.5px;
+  }
+
+  .callout.paradigm {
+    background: #fef3c7;
+    border-left-color: #d97706;
+  }
+
+  /* --- WALK --- */
+  .walk-step {
+    display: flex;
+    gap: 8px;
+    margin: 4px 0;
+    align-items: flex-start;
+  }
+
+  .walk-step .step-num {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    background: var(--accent);
+    color: white;
+    border-radius: 50%;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .walk-step .step-body { padding-top: 1px; }
+
+  /* --- CATALOG --- */
+  .catalog-group { margin-bottom: 16px; }
+  .catalog-group h4 { margin-bottom: 4px; }
+
+  .instrument-row {
+    display: grid;
+    grid-template-columns: 48px 1fr;
+    gap: 6px;
+    padding: 3px 0;
+    border-bottom: 1px solid #f3f4f6;
+    font-size: 12.5px;
+  }
+
+  .instrument-row .id {
+    font-family: monospace;
+    font-size: 11px;
+    color: var(--text-secondary);
+    padding-top: 1px;
+  }
+
+  /* --- QUESTIONS BY ROLE --- */
+  .role-block { margin-bottom: 14px; }
+  .role-block h4 { margin-bottom: 3px; }
+  .role-block ul { margin: 0; padding-left: 18px; }
+  .role-block li { margin-bottom: 1px; font-size: 12.5px; }
+
+  /* --- LAYER TAGS --- */
+  .layer-tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 3px;
+    vertical-align: middle;
+  }
+  .l1 { background: #fef2f2; color: var(--layer1); }
+  .l2 { background: #fff7ed; color: var(--layer2); }
+  .l3 { background: #eff6ff; color: var(--layer3); }
+  .l4 { background: #f5f3ff; color: var(--layer4); }
+
+  /* --- STICKY SECTION HEADER --- */
+  #sticky-section {
+    position: fixed;
+    top: 0;
+    left: var(--nav-width);
+    right: 0;
+    background: #1e293b;
+    border-bottom: none;
+    padding: 5px 36px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #94a3b8;
+    z-index: 5;
+    transform: translateY(-100%);
+    transition: transform 0.2s ease;
+    pointer-events: none;
+  }
+
+  #sticky-section.visible { transform: translateY(0); }
+
+  #sticky-section .section-path {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  #sticky-section .section-path .sep { opacity: 0.5; }
+  #sticky-section .section-path .current { color: #e2e8f0; }
+
+  /* --- ACTIVE NAV --- */
+  nav a.active {
+    background: var(--accent-light);
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* --- RESPONSIVE --- */
+  @media (max-width: 900px) {
+    nav { display: none; }
+    #sticky-section { left: 0; padding-left: 16px; }
+    main { margin-left: 0; padding: 32px 16px 60px; }
+  }
+
+  /* --- PRINT --- */
+  @media print {
+    nav { display: none; }
+    #sticky-section { display: none; }
+    main { margin-left: 0; max-width: none; padding: 20px; }
+    h2 { page-break-before: always; border-top: none; }
+    h2:first-of-type { page-break-before: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-title">O-BOK Handbook</div>
+
+  <a href="#methodology">The Methodology</a>
+  <a href="#problems">Problems Addressed</a>
+  <a href="#four-layer">The Four-Layer Model</a>
+  <a href="#semantic-chain">The Semantic Chain</a>
+
+  <div class="nav-section">The Practice</div>
+  <a href="#lifecycle">Practice Lifecycle</a>
+  <a href="#define">Define — Business Context</a>
+  <a href="#implement">Implement — Signal Design</a>
+  <a href="#enforce">Enforce — Standards</a>
+  <a href="#observe">Observe — Dashboards</a>
+  <a href="#respond">Respond — Incidents</a>
+
+  <a href="#pipeline">The Onboarding Pipeline</a>
+
+  <div class="nav-section">Enabling</div>
+  <a href="#platform">Platform &amp; Tooling</a>
+  <a href="#integration">Integration</a>
+  <a href="#governance">Data Governance</a>
+
+  <div class="nav-section">Managing</div>
+  <a href="#strategy">Strategy &amp; Program</a>
+  <a href="#stakeholders">Stakeholders</a>
+  <a href="#capability">Org Capability</a>
+  <a href="#adoption">Adoption</a>
+  <a href="#improvement">Continuous Improvement</a>
+
+  <div class="nav-section">Reference</div>
+  <a href="#instruments">Practice Instruments</a>
+  <a href="#walking">Walking a Question</a>
+  <a href="#questions">Questions by Role</a>
+  <a href="#glossary">Glossary</a>
+  <a href="#about">About This Handbook</a>
+</nav>
+
+<main>
+
+<!-- ==================== METHODOLOGY ==================== -->
+<h1 id="methodology">Business Observability</h1>
+<p class="subtitle">The Observability Body of Knowledge (O-BOK) — a practitioner handbook</p>
+
+<p><strong>Observability begins with defining success in business health terms — not with telemetry.</strong></p>
+
+<p>Traditional monitoring starts with the data you can collect — metrics, logs, traces — and layers business meaning on top when time permits. Business observability reverses that order. Business context is defined first. Signals are designed to measure that context. Everything downstream — dashboards, alerts, playbooks — derives from the business definition.</p>
+
+<p>This is a minority position in the observability industry, and it is deliberate. A telemetry-first practice produces comprehensive dashboards that an executive cannot use to answer <em>"is the business healthy right now?"</em> A business-context-first practice can.</p>
+
+<div class="callout paradigm">
+  <strong>The paradigm distinction:</strong> SLO/SLI practice (Google SRE) is compatible — an SLO is a quantified stakeholder expectation. Business observability extends SRE with the business-context layer that SLOs alone don't require. Teams with mature SLO practice have most of Layer 3. What's typically missing is the structured stakeholder-expectation and business-impact surface around them.
+</div>
+
+<!-- PROBLEMS -->
+<h2 id="problems">Problems This Addresses</h2>
+
+<p>These problems repeat across every line of business. If your organization monitors systems but struggles to answer business impact questions during incidents, this is why.</p>
+
+<table>
+  <tr><th style="width:30px">#</th><th>Problem</th><th>What happens</th><th>Where addressed</th></tr>
+  <tr><td>1</td><td><strong>Impact quantification takes hours</strong></td><td>Determining affected customers, revenue at risk, or regulatory exposure requires manual calls to business partners — during every major incident.</td><td><a href="#define">Define</a> (L4 impact signals), <a href="#respond">Respond</a> (triage by layer)</td></tr>
+  <tr><td>2</td><td><strong>Systems show green while the business is failing</strong></td><td>99.9% availability, 200ms latency, 0.1% errors — and customers can't complete transactions. Nothing in the monitoring catches it.</td><td><a href="#four-layer">Four-Layer Model</a> (L3/L4 close the gap)</td></tr>
+  <tr><td>3</td><td><strong>Alerts fire without business context</strong></td><td>On-call engineers get paged but can't tell if the alert matters. No customer count, no revenue impact, no escalation path. Result: alert fatigue.</td><td><a href="#semantic-chain">Semantic Chain</a>, <a href="#respond">Respond</a> (context-aware triage)</td></tr>
+  <tr><td>4</td><td><strong>Business context is tribal knowledge</strong></td><td>Which executive cares about which service, what "healthy" means, what the playbook is when it breaks — lives in people's heads. When they leave, it leaves.</td><td><a href="#define">Define</a> (service profile), <a href="#pipeline">Pipeline</a> (SUD captures it)</td></tr>
+  <tr><td>5</td><td><strong>POs can't translate expectations into signals</strong></td><td>"80% of loans approved within 24 hours" is a business expectation. Translating it into a measurable, monitorable signal requires collaboration that rarely happens systematically.</td><td><a href="#define">Define</a> (workflow), <a href="#implement">Implement</a> (three-actor model)</td></tr>
+  <tr><td>6</td><td><strong>Business owners are excluded from observability</strong></td><td>Observability is treated as platform/SRE work. Nobody asks the product owner "what do you need to see?" Monitoring answers engineering questions, not business ones.</td><td><a href="#capability">Org Capability</a> (role ownership by layer)</td></tr>
+  <tr><td>7</td><td><strong>The methodology doesn't self-execute</strong></td><td>Stakeholders agree in meetings. Nothing changes operationally. Without structured onboarding and clear "what do I do Monday" instructions, enthusiasm doesn't convert.</td><td><a href="#pipeline">Pipeline</a>, <a href="#adoption">Adoption</a> (onboarding workflow)</td></tr>
+</table>
+
+<p>Further reading: <em>Problems Business Observability Solves</em> — the full diagnostic inventory (20+ patterns), available in the O-BOK source documentation.</p>
+
+
+<!-- FOUR LAYER MODEL -->
+<h2 id="four-layer">The Four-Layer Model</h2>
+
+<p>Observability signals organize into four layers. The first two are traditional monitoring. The second two are the business observability contribution — the business context layer most organizations lack.</p>
+
+<table>
+  <tr>
+    <th>Layer</th><th>Name</th><th>Question</th><th>Owner</th>
+  </tr>
+  <tr>
+    <td><span class="layer-tag l1">L1</span></td>
+    <td>System</td>
+    <td>Is the platform operational?</td>
+    <td>SRE / Platform</td>
+  </tr>
+  <tr>
+    <td><span class="layer-tag l2">L2</span></td>
+    <td>Process</td>
+    <td>Is the workflow executing correctly?</td>
+    <td>Developer / QA</td>
+  </tr>
+  <tr>
+    <td><span class="layer-tag l3">L3</span></td>
+    <td>Business Health</td>
+    <td>Is the stakeholder expectation being met?</td>
+    <td>Product Owner</td>
+  </tr>
+  <tr>
+    <td><span class="layer-tag l4">L4</span></td>
+    <td>Business Impact</td>
+    <td>How bad is it when we fail?</td>
+    <td>PO + Ops / Compliance</td>
+  </tr>
+</table>
+
+<p>Layers 1–2 validate the mechanism (up, fast, correct). Layer 3 validates the intended outcome. Layer 4 quantifies the consequence when outcomes miss.</p>
+
+<p>A service can be <strong>green on L1–L2</strong> (infrastructure healthy, workflows running) while <strong>failing on L3</strong> (business outcomes not met). That gap is why L3/L4 exist.</p>
+
+
+<!-- SEMANTIC CHAIN -->
+<h2 id="semantic-chain">The Semantic Chain</h2>
+
+<p>Every signal traces back to a business reason through an explicit chain:</p>
+
+<div class="chain">[Stakeholder] has an [Expectation]
+  → measured by a [Business Health Signal <span class="layer-tag l3">L3</span>] with a target and formula
+    → supported by [Process Signals <span class="layer-tag l2">L2</span>] and [System Signals <span class="layer-tag l1">L1</span>]
+      → if breached: [Business Impact <span class="layer-tag l4">L4</span>]: category + magnitude
+        → [Alert] → [Owner + Next Action]</div>
+
+<p>No signal exists without a stakeholder expectation it serves. No stakeholder expectation exists without a signal measuring it. The chain is enforced structurally — traceability is a data-model relationship, not a documentation convention.</p>
+
+
+<!-- ==================== LIFECYCLE ==================== -->
+<h2 id="lifecycle">The Practice Lifecycle</h2>
+
+<p>The core practice runs a lifecycle. Dependencies flow left to right — you cannot observe what you haven't instrumented, and you cannot instrument what you haven't defined.</p>
+
+<div class="lifecycle-spine">
+  <div class="stage stage-define">Define<span class="label">Business Context</span></div>
+  <span class="arrow">→</span>
+  <div class="stage stage-implement">Implement<span class="label">Signal Design</span></div>
+  <span class="arrow">→</span>
+  <div class="stage stage-enforce">Enforce<span class="label">Standards</span></div>
+  <span class="arrow">→</span>
+  <div class="stage stage-observe">Observe<span class="label">Dashboards</span></div>
+  <span class="arrow">→</span>
+  <div class="stage stage-respond">Respond<span class="label">Incidents</span></div>
+</div>
+
+<p>The lifecycle is iterative: incidents (Respond) reveal business context gaps, feeding back to Define. A postmortem that discovers <em>"we didn't know who the affected stakeholders were"</em> is a Define gap, not a Respond failure.</p>
+
+
+<!-- DEFINE -->
+<h3 id="define">Define — Business Context &amp; Service Definition</h3>
+<p><strong>Owner:</strong> Product Owner &nbsp;|&nbsp; <strong>Question:</strong> What does "healthy" mean in business terms?</p>
+
+<h4>What the PO produces</h4>
+<p>A <strong>service profile</strong> — the root entity that captures everything needed to make a service observable in business terms:</p>
+
+<table>
+  <tr><th>Component</th><th>What it captures</th></tr>
+  <tr><td>Service identity</td><td>Name, business purpose, tier (1–6), org placement, CMDB (Configuration Management Database) app ID</td></tr>
+  <tr><td>Stakeholder expectations</td><td>Who cares and what they need (3–5 rows per service, forced prioritization)</td></tr>
+  <tr><td>Health signals <span class="layer-tag l3">L3</span></td><td>What "working" looks like, quantified as SLOs with targets and time windows</td></tr>
+  <tr><td>Impact signals <span class="layer-tag l4">L4</span></td><td>What failure costs across four impact categories</td></tr>
+  <tr><td>Traceability</td><td>Every signal → stakeholder expectation it serves</td></tr>
+  <tr><td>Operational readiness</td><td>Dashboard URL, runbook URL, alert targets, escalation policy</td></tr>
+</table>
+
+<h4>Stakeholder expectations</h4>
+<p>Each expectation reads as a complete story: <em>"As [stakeholder], I expect [X]. If broken: [impact]."</em></p>
+
+<table>
+  <tr><th>Field</th><th>Example</th></tr>
+  <tr><td>Stakeholder</td><td>Mortgage applicants <em>(specific, not "customers")</em></td></tr>
+  <tr><td>Expectation</td><td>Wire transfers complete on scheduled closing date</td></tr>
+  <tr><td>Impact category</td><td>customer_experience, financial, legal_risk, or operational</td></tr>
+  <tr><td>Impact description</td><td>Customer Impact: Homebuyers cannot complete purchase on scheduled date</td></tr>
+  <tr><td>Priority</td><td>CRITICAL / HIGH / MEDIUM / LOW</td></tr>
+</table>
+
+<h4>SLOs</h4>
+<p>SLOs translate stakeholder expectations into quantitative targets. An SLO has a <strong>target</strong> (e.g., 99.5%), a <strong>time window</strong> (e.g., 30 days rolling), and a <strong>budgeting method</strong> (Occurrences, Timeslices, or RatioTimeslices). Error budgets make reliability trade-offs explicit — when the budget is consumed, reliability is prioritized over velocity.</p>
+
+<h4>The workflow</h4>
+<ol>
+  <li>Identify service — PO names the service, its business purpose, and org placement</li>
+  <li>Define stakeholders — PO captures 3–5 stakeholder expectations with impact categories</li>
+  <li>Define health — PO creates L3 signals with SLO targets</li>
+  <li>Define impact — PO creates L4 signals quantifying failure consequences</li>
+  <li>Map traceability — PO links each signal to the stakeholder expectation it serves</li>
+  <li>Evaluate — Service Status score shows completeness across 5 dimensions</li>
+</ol>
+
+<p>The first profile for a service takes approximately <strong>15 minutes</strong> with AI-assisted pre-population from existing content.</p>
+
+<h4>Three service definition patterns</h4>
+<table>
+  <tr><th>Pattern</th><th>When to use</th><th>Example</th></tr>
+  <tr><td>CMDB Application</td><td>One app, one service</td><td>"Wire Transfer Engine"</td></tr>
+  <tr><td>Capability within an App</td><td>One function inside a large app</td><td>"Appraisal Order Processing" within Home Lending</td></tr>
+  <tr><td>Business Capability spanning Apps</td><td>Stakeholder-meaningful process across multiple apps</td><td>"Mortgage Origination" spanning credit, appraisal, underwriting, closing</td></tr>
+</table>
+
+
+<!-- IMPLEMENT -->
+<h3 id="implement">Implement — Signal Design &amp; Instrumentation</h3>
+<p><strong>Owner:</strong> Developer &nbsp;|&nbsp; <strong>Question:</strong> How do we instrument the signals that matter?</p>
+
+<h4>Signal types by layer</h4>
+<table>
+  <tr><th>Layer</th><th>Signal Types</th><th>Measurement Pattern</th></tr>
+  <tr><td><span class="layer-tag l1">L1</span> System</td><td>sli_ratio, sli_threshold</td><td>Infrastructure: uptime %, latency, CPU, memory</td></tr>
+  <tr><td><span class="layer-tag l2">L2</span> Process</td><td>sli_ratio, sli_threshold</td><td>Application: validation rates, batch completion, error rates</td></tr>
+  <tr><td><span class="layer-tag l3">L3</span> Business Health</td><td>sli_ratio, sli_threshold</td><td>Outcomes: fill rate %, pass rate %, on-time rate</td></tr>
+  <tr><td><span class="layer-tag l4">L4</span> Business Impact</td><td>business_impact</td><td>Consequence: customers_affected, dollars_at_risk, compliance_cases</td></tr>
+</table>
+
+<p><strong>Two measurement types for L1–L3:</strong></p>
+<ul>
+  <li><strong>sli_ratio</strong> — good events / total events. <em>"99.5% of page loads complete in &lt; 2 seconds."</em></li>
+  <li><strong>sli_threshold</strong> — metric vs. absolute limit. <em>"Average response time stays below 500ms."</em></li>
+</ul>
+
+<p><span class="layer-tag l4">L4</span> is structurally different: impact signals don't have SLO targets. They activate when an L3 signal breaches its target, quantifying the consequence. Event-driven, not continuously measured.</p>
+
+<h4>Three-actor ownership model</h4>
+<table>
+  <tr><th>Actor</th><th>Contributes</th></tr>
+  <tr><td>Product Owner</td><td>Signal definition — name, business description, SLO target</td></tr>
+  <tr><td>Developer</td><td>Implementation — signal type, queries, data source</td></tr>
+  <tr><td>Platform Engineer</td><td>Configuration — alert thresholds, severity, routing</td></tr>
+</table>
+
+<p>A single signal record accumulates fields from all three actors over time. The PO can create a signal before the Developer has written any queries — business context should not be blocked by technical implementation.</p>
+
+<h4>Instrumentation patterns</h4>
+<ol>
+  <li><strong>Code-level</strong> — signals emitted from application code (counters, gauges, histograms). Most L2 and L3 signals.</li>
+  <li><strong>Pipeline</strong> — signals derived from data processing (batch completion rates, queue depths, ETL success).</li>
+  <li><strong>Agent-based</strong> — external observers (infrastructure metrics, synthetic monitoring, log-based extraction).</li>
+</ol>
+
+
+<!-- ENFORCE -->
+<h3 id="enforce">Enforce — Standards &amp; Quality</h3>
+<p><strong>Owner:</strong> Platform / Engineering &nbsp;|&nbsp; <strong>Question:</strong> How do we ensure standards before production?</p>
+
+<h4>Service Status evaluation</h4>
+<p>The primary quality gate — a completeness score (0–100) computed across five dimensions:</p>
+
+<table>
+  <tr><th>Dimension</th><th>Weight</th><th>What it measures</th></tr>
+  <tr><td>Layer Coverage</td><td>20%</td><td>Signals across all 4 layers?</td></tr>
+  <tr><td>Signal Completeness</td><td>30%</td><td>Required fields filled for each signal?</td></tr>
+  <tr><td>Threshold Coverage</td><td>15%</td><td>Health signals have alert/page thresholds?</td></tr>
+  <tr><td>Traceability Coverage</td><td>20%</td><td>Every stakeholder has at least one linked signal?</td></tr>
+  <tr><td>Operational Readiness</td><td>15%</td><td>Dashboard, runbook, alert targets, escalation defined?</td></tr>
+</table>
+
+<p>Computed on every access, never stored. Progressive — a new service scores 0% and rises as the PO adds content. Teams see progress incrementally.</p>
+
+<h4>Production-ready means</h4>
+<ol>
+  <li>Alert notification targets — who gets notified</li>
+  <li>Dashboard URL — where the team sees service health</li>
+  <li>Runbook URL — the documented response procedure</li>
+  <li>Escalation policy — who to contact when first responder can't resolve</li>
+</ol>
+
+
+<!-- OBSERVE -->
+<h3 id="observe">Observe — Monitoring, Visualization &amp; Correlation</h3>
+<p><strong>Owner:</strong> Platform / SRE &nbsp;|&nbsp; <strong>Question:</strong> What views make health visible?</p>
+
+<h4>Dashboard hierarchy</h4>
+<table>
+  <tr><th>Level</th><th>Audience</th><th>Question</th></tr>
+  <tr><td>Product Lines</td><td>Executive</td><td>Is anything red?</td></tr>
+  <tr><td>Products</td><td>Director</td><td>Which product area needs attention?</td></tr>
+  <tr><td>Services</td><td>Manager / PO</td><td>Which service is degraded?</td></tr>
+  <tr><td>Service Detail</td><td>PO / Dev / SRE</td><td>What's happening with this service?</td></tr>
+  <tr><td>Signal Detail</td><td>Dev / SRE</td><td>What's the signal showing?</td></tr>
+</table>
+
+<p>Navigation is drill-down: each click narrows focus from portfolio to signal.</p>
+
+<h4>Business-first display order</h4>
+<p>At the Service Detail level, information is sequenced by what practitioners actually have:</p>
+<ol>
+  <li><strong>Stakeholder expectations</strong> — always exist (PO provides). Who cares and what they need.</li>
+  <li><strong>Operational signals</strong> — the actual diagnostic truth. What's the current health?</li>
+  <li><strong>Business impact estimates</strong> — reference context with uncertainty language ("~", "Estimated Impact").</li>
+  <li><strong>SLI</strong> — the goal. May be blank in Year 1 for many services.</li>
+</ol>
+
+<h4>Signal trust hierarchy</h4>
+<ul>
+  <li><strong>SLI (highest)</strong> — actual measurement of service health. This IS what's happening.</li>
+  <li><strong>Operational signals (high)</strong> — component health. These components ARE functioning/failing.</li>
+  <li><strong>Business impact estimates (lower)</strong> — calculated from assumptions. Directionally useful, not exact.</li>
+</ul>
+
+
+<!-- RESPOND -->
+<h3 id="respond">Respond — Incident Management</h3>
+<p><strong>Owner:</strong> SRE / Ops &nbsp;|&nbsp; <strong>Question:</strong> When something fails, what do we do?</p>
+
+<h4>Business-context-aware triage</h4>
+<ol>
+  <li><strong>Which layers are affected?</strong> L3 breach with L1/L2 green = business logic problem. L1 breach cascading to L3 = infrastructure problem with business impact.</li>
+  <li><strong>What's the business impact?</strong> L4 signals quantify: customers affected, revenue at risk, compliance exposure.</li>
+  <li><strong>Who's the stakeholder?</strong> Stakeholder expectations tell you who cares. CRITICAL regulatory expectation > MEDIUM internal expectation.</li>
+</ol>
+
+<h4>Escalation by layer</h4>
+<table>
+  <tr><th>Affected Layer</th><th>First Responder</th><th>Escalation Path</th></tr>
+  <tr><td><span class="layer-tag l1">L1</span> System</td><td>Platform / SRE</td><td>Infrastructure → Platform lead</td></tr>
+  <tr><td><span class="layer-tag l2">L2</span> Process</td><td>Developer on-call</td><td>App team → Dev lead → Architecture</td></tr>
+  <tr><td><span class="layer-tag l3">L3</span> Business Health</td><td>PO + Dev on-call</td><td>Business escalation + technical investigation</td></tr>
+  <tr><td><span class="layer-tag l4">L4</span> Business Impact</td><td>Incident commander</td><td>Cross-functional: PO + Dev + SRE + leadership</td></tr>
+</table>
+
+<p>Playbooks are pre-built response procedures tied to signal patterns. A playbook answers: <em>"This alert fired. Now what?"</em></p>
+
+<p>The feedback loop: every incident is a business context audit. Did we know the affected stakeholders? Were impact categories correct? Was the right person paged? Gaps feed back to Define.</p>
+
+
+<!-- ==================== PIPELINE ==================== -->
+<h2 id="pipeline">The Onboarding Pipeline</h2>
+
+<p>The methodology becomes operational through a pipeline that takes a service from <strong>"no business observability"</strong> to <strong>"deployed dashboard with live telemetry."</strong></p>
+
+<div class="chain">Sources (docs, code, ops history)
+  → Capture (structured understanding about the service)     ← requires judgment
+    → Validate (quality gate — completeness, citations)      ← mechanical
+      → Load (managed service profile in the data model)     ← mechanical
+        → Factory (profile → dashboard JSON)                 ← mechanical
+          → Deploy (live dashboard querying real datasources) ← mechanical</div>
+
+<h4>One judgment step, five mechanical steps</h4>
+
+<p><strong>Capture is the hard part.</strong> Reading source material about a service and producing a structured understanding of who depends on it, what "healthy" means, what breaks when it fails, and what signals measure those expectations. This requires judgment — deciding which stakeholders matter, designing signals at the right layer, setting SLO targets with rationale.</p>
+
+<p><strong>Everything after capture is mechanical.</strong> Validate checks the structure. Load transforms it into the data model. Factory produces artifacts. Deploy puts them live. These steps don't make decisions — they execute deterministic transforms on the understanding that capture produced.</p>
+
+<h4>The Service Understanding Document</h4>
+
+<p>The capture step produces a <strong>Service Understanding Document (SUD)</strong> — a structured record of everything known about a service's business context, stakeholders, signals, and operational readiness. It's produced by answering 51 questions organized by what they capture:</p>
+
+<table>
+  <tr><th>Section</th><th>Questions</th><th>What it captures</th></tr>
+  <tr><td>What is this service?</td><td>10</td><td>Identity, purpose, tier, ownership, dependencies, failure modes</td></tr>
+  <tr><td>Who cares?</td><td>5</td><td>Stakeholders, expectations, impact, priority</td></tr>
+  <tr><td>What signals?</td><td>12 (per signal)</td><td>Layer, type, SLO target, ownership, causal relationships</td></tr>
+  <tr><td>What impact?</td><td>6</td><td>Impact metrics, affected populations, financial exposure</td></tr>
+  <tr><td>Traceability</td><td>4</td><td>Signal → stakeholder mappings, causal chains between layers</td></tr>
+  <tr><td>Operational</td><td>8</td><td>Dashboard, runbook, alert targets, escalation, dependencies</td></tr>
+  <tr><td>Emerging</td><td>6</td><td>Understanding that runs ahead of what the data model can express today</td></tr>
+</table>
+
+<p>Every answer requires <strong>source citations and reasoning</strong>. When someone six months later asks "why is the SLO target 95%?", the citation chain traces back to the specific document or conversation that justified it.</p>
+
+<p>Not all questions will have answers — real sources are messy and incomplete. The SUD captures understanding as it exists now. Fields populate later as better sources become available.</p>
+
+<h4>What the factories produce</h4>
+
+<p>The service profile in the data model is the stable contract. Everything upstream produces it; everything downstream consumes it. Currently operational:</p>
+
+<table>
+  <tr><th>Factory</th><th>Input</th><th>Output</th></tr>
+  <tr><td>Dashboard Factory</td><td>Service profile</td><td>Grafana dashboard JSON — panels organized by business health → impact → process → system</td></tr>
+</table>
+
+<p>The same data model feeds alert configs, runbooks, playbooks, and signal specs as those factories are built. One PO action → multiple automated outputs.</p>
+
+<div class="callout">
+  <strong>Why the SUD is the durable asset:</strong> Dashboards, alerts, and playbooks are derived outputs that factories regenerate whenever the factory logic improves. If a factory gets a better layout algorithm, you re-run it against the same profile. You don't re-capture the understanding.
+</div>
+
+
+<!-- ==================== ENABLING ==================== -->
+<h2 id="enabling">Enabling Capabilities</h2>
+
+<h3 id="platform">Platform &amp; Tooling</h3>
+<p><strong>Question:</strong> What technology makes observability possible?</p>
+
+<p>Covers tool selection, telemetry pipeline architecture, consolidation strategy, observability economics. Business observability abstracts over tool choice through a <code>data_source</code> field — a signal can come from any supported platform (Splunk, Grafana, Dynatrace, etc.).</p>
+
+<p>Industry research (11 maturity models from AWS, Grafana, Splunk, New Relic, Honeycomb, Dynatrace, DORA) shows convergence on a common arc: <strong>reactive → proactive → predictive</strong>. The industry is stuck at the transition from technical observability to business-aware — only 15–20% of organizations have crossed it.</p>
+
+<h3 id="integration">Integration &amp; Architecture</h3>
+<p><strong>Question:</strong> How does observability connect to enterprise systems?</p>
+
+<p>The CMDB application ID is the primary join key between the observability catalog and enterprise systems. Every service entry ties to a CMDB entry.</p>
+
+<p><strong>The CMDB granularity problem:</strong> A single CMDB app ID often contains 50–100 separate repositories spanning multiple business capabilities. Business observability addresses this through service definition pattern #2 — defining health at the capability level even when the CMDB entry is monolithic. The observability service registry complements the CMDB, not duplicates it.</p>
+
+<p>Integration surfaces: CMDB/ServiceNow, CI/CD pipelines (quality gate as deployment gate), regulatory frameworks, enterprise architecture (BIAN, ITIL, TOGAF).</p>
+
+<h3 id="governance">Data Governance</h3>
+<p><strong>Question:</strong> How do we maintain data coherence at scale?</p>
+
+<p>The service catalog is the system-of-record — 15+ fields per service capturing business context that otherwise exists only in people's heads. At 20 services × 3–4 contexts each = 60–80 records of organizational knowledge made explicit.</p>
+
+<p><strong>Naming discipline:</strong> Machine-friendly (<code>signal_name</code>) + human-readable (<code>signal_display_name</code>). Four fixed impact categories. Avoid shorthand that collides across contexts.</p>
+
+<p><strong>Currency problem:</strong> Catalogs go stale. Two feedback loops: reactive (postmortem finds gaps → update profile) + proactive (scheduled reviews triggered by org change). Audit trail (<code>modified_at</code>) detects staleness.</p>
+
+
+<!-- ==================== MANAGING ==================== -->
+<h2 id="managing">Managing the Practice</h2>
+
+<h3 id="strategy">Strategy &amp; Program Management</h3>
+<p><strong>Question:</strong> How does observability align with enterprise direction?</p>
+
+<p>A typical program uses four Key Results: methodology validation → implementation across services → cross-org adoption → enterprise integration. Each KR has quantified measures and dependencies.</p>
+
+<p><strong>Common governance structure:</strong> A champions working group — recurring meeting of regular participants from multiple LOBs and platform teams, convened by senior line leadership, co-facilitated by a practice lead. Pre-PMO structure being pushed toward more disciplined output as the practice matures.</p>
+
+<h3 id="stakeholders">Stakeholder Engagement</h3>
+<p><strong>Question:</strong> How do we engage stakeholders across altitudes?</p>
+
+<p>The same work framed differently for different audiences:</p>
+<table>
+  <tr><th>Altitude</th><th>Audience</th><th>What they need to hear</th></tr>
+  <tr><td>Enterprise</td><td>CIO / SVP</td><td>Portfolio risk visibility, strategic alignment, investment justification</td></tr>
+  <tr><td>Division</td><td>Director / VP</td><td>Which products are covered, where the gaps are, adoption trajectory</td></tr>
+  <tr><td>Team</td><td>PO / Dev / SRE</td><td>What to do, how to start, what it produces for them specifically</td></tr>
+</table>
+
+<p>Champion networks carry the message — but champion <em>enablement</em> (packaging "how to talk about this to your team") is a common gap.</p>
+
+<h3 id="capability">Organizational Capability</h3>
+<p><strong>Question:</strong> Do we have the right people, skills, and structure?</p>
+
+<h4>Role ownership by layer</h4>
+<table>
+  <tr><th>Layer</th><th>Who owns it</th><th>What they define</th></tr>
+  <tr><td><span class="layer-tag l3">L3</span> + <span class="layer-tag l4">L4</span></td><td>Product Owner</td><td>Business context, health targets, impact quantification</td></tr>
+  <tr><td><span class="layer-tag l2">L2</span></td><td>Developer</td><td>Process signals, instrumentation</td></tr>
+  <tr><td><span class="layer-tag l1">L1</span></td><td>Platform / SRE</td><td>System signals, alerting, platform operations</td></tr>
+  <tr><td>Cross-cutting</td><td>Practice Lead / PE</td><td>Methodology, standards, cross-team coordination</td></tr>
+</table>
+
+<p>Culture shift: from technical reductionism (<em>"show me the dependency map"</em>) to business outcomes (<em>"define health first"</em>). Visible wins drive adoption faster than mandates.</p>
+
+<h3 id="adoption">Adoption &amp; Enablement</h3>
+<p><strong>Question:</strong> How do teams actually start?</p>
+
+<h4>Onboarding workflow (~15 min with AI pre-population)</h4>
+<ol>
+  <li>Service basics — name, purpose, tier</li>
+  <li>Stakeholder expectations — who cares, what breaks (repeatable for each stakeholder)</li>
+  <li>Business health signals + SLO configuration</li>
+  <li>Technical signals (L1/L2)</li>
+  <li>Business impact quantification</li>
+  <li>Technical impact mapping</li>
+  <li>Preview and validate</li>
+</ol>
+
+<p>Two modes: <strong>Learn</strong> (explanation + examples at each step) vs. <strong>Fast</strong> (minimized guidance for experienced teams).</p>
+
+<p><strong>Adoption funnel:</strong> Awareness → First touch (onboarding) → Pilot (with friction logging) → Validation → Team adoption → Scale. Friction logging captures pain points in real time during onboarding — what didn't work, context, workaround — to be analyzed later.</p>
+
+<h3 id="improvement">Continuous Improvement</h3>
+<p><strong>Question:</strong> Is the practice itself getting better?</p>
+
+<p><strong>Four maturity stages</strong> per service, mapping to role contributions:</p>
+<table>
+  <tr><th>Stage</th><th>What it means</th><th>Role</th></tr>
+  <tr><td>Identified</td><td>Service exists in the catalog</td><td>Anyone</td></tr>
+  <tr><td>Contextualized</td><td>Stakeholders and expectations defined</td><td>PO</td></tr>
+  <tr><td>Instrumented</td><td>Signals designed and implemented</td><td>Developer</td></tr>
+  <tr><td>Operationalized</td><td>Dashboards, alerts, playbooks live</td><td>Platform</td></tr>
+</table>
+
+<p>Practice metrics track portfolio coverage (<em>"45 of 78 services at Contextualized or above"</em>), not individual service health. Incidents reveal methodology gaps. Friction logs reveal adoption barriers. Both feed back into the practice.</p>
+
+
+<!-- ==================== INSTRUMENTS ==================== -->
+<h2 id="instruments">Practice Instruments</h2>
+
+<p>Concrete tools a practitioner picks up and uses. Organized by the kind of action they support — not by which knowledge area they relate to.</p>
+
+<div class="catalog-group">
+  <h4>Assessment — "Where are we?"</h4>
+  <div class="instrument-row"><span class="id">IN-01</span><span><strong>Service Maturity Model</strong> — measure how far each service has progressed through the lifecycle</span></div>
+  <div class="instrument-row"><span class="id">IN-02</span><span><strong>Industry Maturity Arc</strong> — position the organization against the industry 5-stage arc</span></div>
+  <div class="instrument-row"><span class="id">IN-03</span><span><strong>Division Maturity Assessment</strong> — assess maturity across a technology division on two dimensions</span></div>
+</div>
+
+<div class="catalog-group">
+  <h4>Definition — "What do I fill out?"</h4>
+  <div class="instrument-row"><span class="id">IN-04</span><span><strong>Service Profile Template</strong> — capture service identity, purpose, tier, org placement</span></div>
+  <div class="instrument-row"><span class="id">IN-05</span><span><strong>Signal Definition Template</strong> — define health signals with SLO targets, formulas, ownership</span></div>
+  <div class="instrument-row"><span class="id">IN-06</span><span><strong>Stakeholder Expectation Template</strong> — capture who cares and what happens when it fails</span></div>
+  <div class="instrument-row"><span class="id">IN-07</span><span><strong>Health Signal Template</strong> — signal measurement details: source, formula, threshold, window</span></div>
+  <div class="instrument-row"><span class="id">IN-08</span><span><strong>Service Status Template</strong> — operational readiness: URLs, alert targets, evaluation scores</span></div>
+  <div class="instrument-row"><span class="id">IN-09</span><span><strong>Signal Specification Format</strong> — signal behavior at feature-spec depth: types, ownership, data model</span></div>
+</div>
+
+<div class="catalog-group">
+  <h4>Production — "What gets produced?"</h4>
+  <div class="instrument-row"><span class="id">IN-10</span><span><strong>Story Factory</strong> — generate user stories from service profiles and signal definitions</span></div>
+  <div class="instrument-row"><span class="id">IN-11</span><span><strong>Dashboard Factory</strong> — generate monitoring dashboards from service profile and signal data</span></div>
+  <div class="instrument-row"><span class="id">IN-12</span><span><strong>Alert Factory</strong> — generate alert rules from signal thresholds and escalation policies</span></div>
+  <div class="instrument-row"><span class="id">IN-13</span><span><strong>Playbook Factory</strong> — generate incident response playbooks from service context and signal patterns</span></div>
+  <div class="instrument-row"><span class="id">IN-14</span><span><strong>Documentation Factory</strong> — generate stakeholder documentation from service profiles</span></div>
+  <div class="instrument-row"><span class="id">IN-15</span><span><strong>Dashboard Generation Methodology</strong> — systematic approach to producing dashboards</span></div>
+</div>
+
+<div class="catalog-group">
+  <h4>Adoption — "How do teams get started?"</h4>
+  <div class="instrument-row"><span class="id">IN-16</span><span><strong>Onboarding Simulation</strong> — guided walkthrough of a PO's first service profile</span></div>
+  <div class="instrument-row"><span class="id">IN-17</span><span><strong>Transfer Packages</strong> — self-contained bundles teams adopt to run the practice independently</span></div>
+  <div class="instrument-row"><span class="id">IN-18</span><span><strong>Friction Logging Protocol</strong> — structured capture of adoption pain points</span></div>
+  <div class="instrument-row"><span class="id">IN-19</span><span><strong>Discovery Dialogue Protocol</strong> — facilitation guide for the PO conversation that produces a profile</span></div>
+</div>
+
+<div class="catalog-group">
+  <h4>Communication — "How do we show progress?"</h4>
+  <div class="instrument-row"><span class="id">IN-20</span><span><strong>Portfolio Maturity View</strong> — executive visualization of service progression</span></div>
+  <div class="instrument-row"><span class="id">IN-21</span><span><strong>Terrain Presentation</strong> — stakeholder communication mapping needs to lifecycle stages</span></div>
+  <div class="instrument-row"><span class="id">IN-22</span><span><strong>Executive Dashboard Patterns</strong> — design patterns for executive-level dashboards</span></div>
+</div>
+
+
+<!-- ==================== WALKING A QUESTION ==================== -->
+<h2 id="walking">Walking a Question</h2>
+
+<p>The handbook's distinctive value: trace any observability question through the dependency chain to find where it actually breaks.</p>
+
+<h4>Example: <em>"We need better signal correlation."</em></h4>
+
+<div class="walk-step">
+  <div class="step-num">1</div>
+  <div class="step-body"><strong>Locate.</strong> Correlation is a monitoring activity → sits in <strong>Observe</strong>.</div>
+</div>
+<div class="walk-step">
+  <div class="step-num">2</div>
+  <div class="step-body"><strong>Follow upstream.</strong> Observe depends on <strong>Implement</strong> — you cannot correlate signals not designed to relate to each other.</div>
+</div>
+<div class="walk-step">
+  <div class="step-num">3</div>
+  <div class="step-body"><strong>Follow again.</strong> Implement depends on <strong>Define</strong> — you cannot design signals without knowing which expectations they serve.</div>
+</div>
+<div class="walk-step">
+  <div class="step-num">4</div>
+  <div class="step-body"><strong>Check content state at each stop.</strong> Observe: solid. Implement: thin signal-derivation content. Define: solid.</div>
+</div>
+<div class="walk-step">
+  <div class="step-num">5</div>
+  <div class="step-body"><strong>Read the walk.</strong> The chain breaks in the middle. Correlation infrastructure built on weak signal design can't make business sense of what it's correlating.</div>
+</div>
+
+<div class="callout">
+  <strong>Investment conclusion:</strong> Fix signal design (Implement) before adding correlation capability (Observe). The walk produced a specific investment target that wasn't visible from the correlation question alone.
+</div>
+
+<h4>More walks</h4>
+<table>
+  <tr><th>Question</th><th>Walk</th><th>Where it usually breaks</th></tr>
+  <tr><td>"Our signals are noisy"</td><td>Observe → Implement → Enforce → Governance</td><td>Standards not enforced, or no one accountable for signal quality</td></tr>
+  <tr><td>"Leadership can't see business impact"</td><td>Observe → Define</td><td>L3/L4 signals aren't defined — no dashboard can surface what doesn't exist</td></tr>
+  <tr><td>"Dashboards don't drive decisions"</td><td>Observe → Stakeholders → Strategy</td><td>Misaligned altitude or missing business context, not rendering choices</td></tr>
+  <tr><td>"We can't get teams to adopt"</td><td>Adoption → Stakeholders → Capability</td><td>Specific point in the funnel — identify which</td></tr>
+  <tr><td>"Incidents reveal unknown stakeholders"</td><td>Respond → Define</td><td>Business context currency — the profile hasn't been reviewed since last org change</td></tr>
+</table>
+
+<h4>The pattern</h4>
+<ol>
+  <li><strong>Locate</strong> — find the lifecycle stage the question addresses</li>
+  <li><strong>Follow upstream</strong> — walk the dependency chain toward Define</li>
+  <li><strong>Check state</strong> — at each stop, is there real substance or a gap?</li>
+  <li><strong>Read the walk</strong> — a break is where weaker state sits upstream of stronger</li>
+  <li><strong>Name the investment target</strong> — the break is where additional work has the most leverage</li>
+</ol>
+
+
+<!-- ==================== QUESTIONS BY ROLE ==================== -->
+<h2 id="questions">Questions by Role</h2>
+
+<div class="role-block">
+  <h4>Product Owner onboarding a new service</h4>
+  <ul>
+    <li>Who cares about this service?</li>
+    <li>What happens to the business if it fails?</li>
+    <li>What should I set as an SLO?</li>
+    <li>Where do I start?</li>
+  </ul>
+</div>
+
+<div class="role-block">
+  <h4>Developer implementing instrumentation</h4>
+  <ul>
+    <li>What signals should I instrument for this expectation?</li>
+    <li>Where should the signal be emitted?</li>
+    <li>What metadata needs to carry with every signal?</li>
+    <li>How do I avoid high cardinality costs?</li>
+  </ul>
+</div>
+
+<div class="role-block">
+  <h4>Platform Engineer / SRE responding to an incident</h4>
+  <ul>
+    <li>What does this alert mean in business terms?</li>
+    <li>Who do I escalate to?</li>
+    <li>What playbook applies?</li>
+    <li>What do we learn from this?</li>
+  </ul>
+</div>
+
+<div class="role-block">
+  <h4>Platform Lead evaluating tools</h4>
+  <ul>
+    <li>Which tool is right for this signal type?</li>
+    <li>Should we consolidate or specialize?</li>
+    <li>How do we control observability cost?</li>
+    <li>How does this fit into enterprise architecture?</li>
+  </ul>
+</div>
+
+<div class="role-block">
+  <h4>Practice Lead planning adoption</h4>
+  <ul>
+    <li>How do we onboard the next team?</li>
+    <li>What's in a transfer package?</li>
+    <li>How do we scale from 5 teams to 50?</li>
+    <li>Where's the friction?</li>
+  </ul>
+</div>
+
+<div class="role-block">
+  <h4>Executive reviewing portfolio</h4>
+  <ul>
+    <li>What's our observability maturity?</li>
+    <li>Where should we invest?</li>
+    <li>What's the state of the portfolio?</li>
+    <li>How does this map to strategic priorities?</li>
+  </ul>
+</div>
+
+
+<!-- ==================== GLOSSARY ==================== -->
+<h2 id="glossary">Glossary</h2>
+
+<table>
+  <tr><th style="width:200px">Term</th><th>Definition</th></tr>
+  <tr><td><strong>Business Observability</strong></td><td>Methodology that defines success in business health terms before designing signals, dashboards, or alerts. Reverses the telemetry-first order.</td></tr>
+  <tr><td><strong>Four-Layer Model</strong></td><td>Signal classification by business meaning: System (L1), Process (L2), Business Health (L3), Business Impact (L4). L1–L2 = traditional monitoring. L3–L4 = business observability contribution.</td></tr>
+  <tr><td><strong>Semantic Chain</strong></td><td>The explicit traceability from stakeholder → expectation → health signal → supporting signals → impact → alert → owner. Every signal connects back to a business reason.</td></tr>
+  <tr><td><strong>Signal</strong></td><td>A quantifiable measurement of service health or business outcome. Not a synonym for "metric" — a signal has an owner, a layer, a stakeholder it serves, and a target.</td></tr>
+  <tr><td><strong>Signal Type</strong></td><td>How a signal is measured. <code>sli_ratio</code> = good events / total events. <code>sli_threshold</code> = metric vs. absolute limit. <code>business_impact</code> = consequence quantification (L4 only).</td></tr>
+  <tr><td><strong>SLI</strong></td><td>Service Level Indicator. A quantifiable measure of service health (Layers 1–3). The measurement that an SLO sets a target for.</td></tr>
+  <tr><td><strong>SLO</strong></td><td>Service Level Objective. A quantified stakeholder expectation — target (e.g., 99.5%), time window (e.g., 30 days), budgeting method. In this methodology, an SLO is the Layer 3 expression of a stakeholder expectation.</td></tr>
+  <tr><td><strong>Error Budget</strong></td><td>The allowed failure margin derived from an SLO. If SLO is 99.5% over 30 days, the error budget is 0.5% (~2h 10m). When consumed, reliability is prioritized over velocity.</td></tr>
+  <tr><td><strong>Stakeholder Expectation</strong></td><td>A specific statement of what a named stakeholder group expects from a service, with an impact category and priority. Reads as: "As [stakeholder], I expect [X]. If broken: [impact]."</td></tr>
+  <tr><td><strong>Impact Category</strong></td><td>One of four fixed types classifying business damage: <code>customer_experience</code>, <code>financial</code>, <code>legal_risk</code>, <code>operational</code>.</td></tr>
+  <tr><td><strong>Service Profile</strong></td><td>The root entity in the data model. Captures a service's identity, stakeholder expectations, health signals, impact signals, traceability mappings, and operational readiness.</td></tr>
+  <tr><td><strong>Service Understanding Document (SUD)</strong></td><td>The structured capture artifact — produced by answering 51 questions about a service against real sources, with citations and reasoning. The durable understanding asset that the pipeline transforms into profiles and artifacts.</td></tr>
+  <tr><td><strong>Three-Actor Ownership</strong></td><td>The defining characteristic of signal implementation: Product Owner defines (what and why), Developer implements (how to measure), Platform Engineer configures (when to alert). One signal, three contributors.</td></tr>
+  <tr><td><strong>Service Status</strong></td><td>A computed completeness score (0–100) across five dimensions: layer coverage, signal completeness, threshold coverage, traceability coverage, operational readiness. Computed on every access, never stored.</td></tr>
+  <tr><td><strong>Traceability</strong></td><td>The structural requirement that every signal maps to a stakeholder expectation it serves, and every stakeholder expectation has at least one signal measuring it. Enforced in the data model, not a documentation convention.</td></tr>
+  <tr><td><strong>Knowledge Area (KA)</strong></td><td>A major division of the observability domain — what practitioners need to understand. 13 KAs across three tiers: Core Practice (lifecycle), Enabling Practice (infrastructure), Management Practice (organizational).</td></tr>
+  <tr><td><strong>Practice Instrument</strong></td><td>A concrete tool a practitioner picks up and uses — template, assessment, factory, protocol. 22 instruments in five types by action: Assessment, Definition, Production, Adoption, Communication.</td></tr>
+  <tr><td><strong>Perspective</strong></td><td>A platform-type lens that bends how Knowledge Areas and Instruments apply. Same KAs, different techniques. Initial set: Cloud-Native, Mainframe, Hybrid, SaaS.</td></tr>
+  <tr><td><strong>Factory</strong></td><td>An automated production system that reads a service profile and generates artifacts — dashboards, alerts, playbooks, documentation, user stories. One PO action → multiple outputs.</td></tr>
+</table>
+
+
+<!-- ==================== ABOUT ==================== -->
+<h2 id="about">About This Handbook</h2>
+
+<p>This handbook is a practitioner-oriented view of the Observability Body of Knowledge (O-BOK). The O-BOK organizes the business observability domain into 13 Knowledge Areas, 22 Practice Instruments, and 4 Perspectives (platform-type lenses).</p>
+
+<h4>Structure</h4>
+<table>
+  <tr><th>Element</th><th>Count</th><th>What it organizes</th></tr>
+  <tr><td>Knowledge Areas</td><td>13</td><td>What practitioners need to understand (5 Core + 3 Enabling + 5 Management)</td></tr>
+  <tr><td>Practice Instruments</td><td>22</td><td>What practitioners pick up and use (5 types by action)</td></tr>
+  <tr><td>Perspectives</td><td>4</td><td>How both vary by platform context (Cloud-Native, Mainframe, Hybrid, SaaS)</td></tr>
+</table>
+
+<h4>Prior art</h4>
+<table>
+  <tr><th>Pattern</th><th>Source</th></tr>
+  <tr><td>Body of Knowledge structure</td><td>SWEBOK (IEEE), PMBOK (PMI), ITIL BOK</td></tr>
+  <tr><td>Practice Instruments catalog</td><td>BABOK v3 Techniques Chapter (IIBA)</td></tr>
+  <tr><td>Perspectives</td><td>BABOK v3 Perspectives Chapter (IIBA)</td></tr>
+  <tr><td>SLO/SLI methodology</td><td>Google SRE, Hidalgo <em>Implementing SLOs</em></td></tr>
+  <tr><td>Maturity arc</td><td>11 industry models (AWS, Grafana, Splunk, New Relic, Honeycomb, Dynatrace, DORA, et al.)</td></tr>
+</table>
+
+<p><strong>Content state:</strong> This is a working draft. Knowledge Areas carry honest content-state markers (Current / Seeded / Missing). Perspectives are structurally in place with seeded content. The structure communicates intent even where content is thin — a named gap is more useful than a silent absence.</p>
+
+<p><strong>What this is not:</strong> Not a playbook. Not canonical. Not a finished product. Not vendor-specific. Not a monitoring platform. It defines how to think about observability and where concepts fit — it does not replace vendor documentation, live monitoring platforms, or organizational artifacts.</p>
+
+</main>
+
+<div id="sticky-section">
+  <div class="section-path">
+    <span class="parent"></span>
+    <span class="sep">›</span>
+    <span class="current"></span>
+  </div>
+</div>
+
+<script>
+(function() {
+  const sticky = document.getElementById('sticky-section');
+  const parentEl = sticky.querySelector('.parent');
+  const currentEl = sticky.querySelector('.current');
+  const sepEl = sticky.querySelector('.sep');
+  const navLinks = document.querySelectorAll('nav a[href^="#"]');
+  const sections = [];
+
+  document.querySelectorAll('h2[id], h3[id]').forEach(el => {
+    sections.push({ el, id: el.id, text: el.textContent.trim(), level: el.tagName });
+  });
+
+  let lastH2 = '';
+  let lastH3 = '';
+  let ticking = false;
+
+  function update() {
+    const scrollY = window.scrollY + 60;
+    let activeH2 = '';
+    let activeH3 = '';
+    let activeId = '';
+
+    for (let i = sections.length - 1; i >= 0; i--) {
+      if (sections[i].el.offsetTop <= scrollY) {
+        if (sections[i].level === 'H3') {
+          activeH3 = sections[i].text;
+          activeId = sections[i].id;
+          for (let j = i - 1; j >= 0; j--) {
+            if (sections[j].level === 'H2') {
+              activeH2 = sections[j].text;
+              break;
+            }
+          }
+        } else {
+          activeH2 = sections[i].text;
+          activeId = sections[i].id;
+          activeH3 = '';
+        }
+        break;
+      }
+    }
+
+    if (window.scrollY < 100) {
+      sticky.classList.remove('visible');
+    } else {
+      sticky.classList.add('visible');
+      if (activeH3) {
+        parentEl.textContent = activeH2;
+        currentEl.textContent = activeH3;
+        sepEl.style.display = '';
+      } else {
+        parentEl.textContent = '';
+        currentEl.textContent = activeH2;
+        sepEl.style.display = 'none';
+      }
+    }
+
+    navLinks.forEach(link => {
+      link.classList.remove('active');
+      if (link.getAttribute('href') === '#' + activeId) {
+        link.classList.add('active');
+      }
+    });
+
+    ticking = false;
+  }
+
+  window.addEventListener('scroll', () => {
+    if (!ticking) { requestAnimationFrame(update); ticking = true; }
+  });
+
+  update();
+})();
+</script>
+
+</body>
+</html>
