@@ -1,0 +1,69 @@
+{
+  "dashboard": {
+    "uid": "canvas-minimal-api",
+    "title": "Canvas — Minimal API Flow",
+    "tags": ["canvas"],
+    "schemaVersion": 39,
+    "panels": [
+      {
+        "id": 1,
+        "type": "canvas",
+        "title": "Simple API — 3 Nodes",
+        "gridPos": { "h": 10, "w": 24, "x": 0, "y": 0 },
+        "fieldConfig": { "defaults": {}, "overrides": [] },
+        "options": {
+          "inlineEditing": true,
+          "panZoom": true,
+          "root": {
+            "name": "root",
+            "background": { "color": { "fixed": "transparent" } },
+            "border": { "color": { "fixed": "dark-green" } },
+            "constraint": { "horizontal": "left", "vertical": "top" },
+            "placement": { "height": 100, "left": 0, "top": 0, "width": 100, "rotation": 0 },
+            "elements": [
+              {
+                "name": "client",
+                "type": "rectangle",
+                "config": { "align": "center", "valign": "middle", "color": { "fixed": "#FFFFFF" }, "text": { "fixed": "Client" }, "size": 12 },
+                "placement": { "left": 100, "top": 50, "width": 130, "height": 45, "rotation": 0 },
+                "background": { "color": { "fixed": "#1565C0" } },
+                "border": { "color": { "fixed": "#0D47A1" }, "width": 1 },
+                "constraint": { "horizontal": "left", "vertical": "top" },
+                "links": [],
+                "connections": [
+                  { "source": { "x": 1, "y": 0 }, "target": { "x": -1, "y": 0 }, "targetName": "api", "path": "straight", "color": { "fixed": "#90CAF9" }, "size": { "fixed": 1.5, "min": 1, "max": 10 } }
+                ]
+              },
+              {
+                "name": "api",
+                "type": "rectangle",
+                "config": { "align": "center", "valign": "middle", "color": { "fixed": "#FFFFFF" }, "text": { "fixed": "REST API" }, "size": 12 },
+                "placement": { "left": 380, "top": 50, "width": 130, "height": 45, "rotation": 0 },
+                "background": { "color": { "fixed": "#2E7D32" } },
+                "border": { "color": { "fixed": "#1B5E20" }, "width": 1 },
+                "constraint": { "horizontal": "left", "vertical": "top" },
+                "links": [],
+                "connections": [
+                  { "source": { "x": 1, "y": 0 }, "target": { "x": -1, "y": 0 }, "targetName": "database", "path": "straight", "color": { "fixed": "#78909C" }, "size": { "fixed": 1.5, "min": 1, "max": 10 } }
+                ]
+              },
+              {
+                "name": "database",
+                "type": "rectangle",
+                "config": { "align": "center", "valign": "middle", "color": { "fixed": "#FFFFFF" }, "text": { "fixed": "PostgreSQL" }, "size": 12 },
+                "placement": { "left": 660, "top": 50, "width": 130, "height": 45, "rotation": 0 },
+                "background": { "color": { "fixed": "#455A64" } },
+                "border": { "color": { "fixed": "#263238" }, "width": 1 },
+                "constraint": { "horizontal": "left", "vertical": "top" },
+                "links": [],
+                "connections": []
+              }
+            ],
+            "connections": []
+          }
+        }
+      }
+    ]
+  },
+  "overwrite": true
+}
