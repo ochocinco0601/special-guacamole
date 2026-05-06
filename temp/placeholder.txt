@@ -1,1 +1,61 @@
 -
+ Add referential integrity checks to the SUD validator.
+
+  The validator (validate_sud.py) has three layers: syntax, schema, quality. The quality layer checks citations and
+  reasoning depth but has zero cross-reference validation between SUD sections. Add a new function
+  _check_referential_integrity(data, result) called at the end of _layer3_quality(), following the existing pattern
+  where quality check functions are defined between the last quality check and main().
+
+  Result accumulation pattern (match exactly):
+  - Errors: result["status"] = "fail" AND result["errors"].append("QUALITY ERROR: ...")
+  - Warnings: result["warnings"].append("QUALITY WARNING: ...") — do NOT set status to fail
+  - Error format: QUALITY ERROR: {location} — {check_name}: {message}
+  - Warning format: QUALITY WARNING: {location} — {check_name}: {message}
+
+  Five checks to implement:
+
+  1. Stakeholder name uniqueness — duplicate stakeholders[].name values → ERROR. Location: stakeholders, check:
+  duplicate_name.
+  2. Signal display_name uniqueness — duplicate signals[].display_name values → ERROR. Location: signals, check:
+  duplicate_display_name.
+  3. Traceability stakeholder resolution — each traceability[].stakeholder must exactly match (case-sensitive) a
+  stakeholders[].name → ERROR. Location: traceability[{i}].stakeholder, check: unresolved_reference.
+  4. Traceability signal resolution — each traceability[].signal must exactly match a signals[].display_name OR an
+  impacts[].display_name (both are valid targets) → ERROR. Location: traceability[{i}].signal, check:
+  unresolved_reference.
+  5. Bidirectional coverage — every stakeholders[].name must appear at least once in traceability[].stakeholder. Every
+   signals[].display_name must appear at least once in traceability[].signal. Default is ERROR. Justification
+  mechanism: concatenate all gaps[] strings into one text block. If the unmapped name appears in that text, downgrade
+  to WARNING (the gap is the justification; silence is the failure). Impacts do not require coverage — only signals
+  and stakeholders.
+
+  Critical domain knowledge — do NOT add this check:
+
+  impacts[].signal_name is the impact's OWN machine identifier, NOT a foreign key to signals[].signal_name. Impacts
+  are standalone entities. Do not validate impact signal_name against the signals array. This looks like a foreign key
+   but it isn't — the schema reuses the field name for the impact's own ID.
+
+  All name matching is exact and case-sensitive. Do not normalize or lowercase.
+
+  Gaps format: gaps is an array of strings (per schema). Join them for substring matching against unmapped names.
+
+  After implementing, fix the golden fixture. The fixture has "Workshop Service Availability" (L1/System signal) with
+  no traceability mapping. Add a mapping: Downstream Services Team → Workshop Service Availability → verifies. The
+  Downstream Services Team is the operational stakeholder who cares about infrastructure availability because their
+  services depend on the workshop API being up.
+
+  Write 8 tests following the existing test pattern (load fixture via FIXTURE_PATH → yaml.safe_load → mutate dict →
+  _write_yaml to tmp_path → _run_validator → assert):
+
+  1. Duplicate stakeholder name → expect ERROR with "duplicate_name"
+  2. Duplicate signal display_name → expect ERROR with "duplicate_display_name"
+  3. Traceability references nonexistent stakeholder name → expect ERROR with "unresolved_reference"
+  4. Traceability references nonexistent signal name → expect ERROR with "unresolved_reference"
+  5. Remove all traceability for one stakeholder → expect ERROR with "stakeholder_coverage"
+  6. Remove all traceability for one signal → expect ERROR with "signal_coverage"
+  7. Remove traceability for one stakeholder BUT add a gap mentioning their name → expect WARNING (not ERROR), assert
+  no error contains that stakeholder name
+  8. Remove traceability for one signal BUT add a gap mentioning its display_name → expect WARNING (not ERROR), assert
+   no error contains that signal name
+
+  Verify: golden fixture passes validation, all tests pass.
