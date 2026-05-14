@@ -1,0 +1,1047 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Systems Analysis: bos-onboard + bos-factory E2E Pipeline</title>
+<style>
+:root {
+  --ivory:  #FAF9F5;
+  --paper:  #FFFFFF;
+  --slate:  #141413;
+  --clay:   #D97757;
+  --clay-d: #B85C3E;
+  --oat:    #E3DACC;
+  --olive:  #788C5D;
+  --g50:    #F7F6F2;
+  --g100:   #F0EEE6;
+  --g150:   #E9E7DE;
+  --g200:   #E6E3DA;
+  --g300:   #D1CFC5;
+  --g500:   #87867F;
+  --g700:   #3D3D3A;
+  --serif:  ui-serif, Georgia, "Times New Roman", Times, serif;
+  --sans:   system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono:   ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--ivory);
+  color: var(--slate);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── layout shell: sidebar + content ─── */
+.layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  min-height: 100vh;
+}
+
+/* ── sidebar ─── */
+.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  background: var(--paper);
+  border-right: 1.5px solid var(--g300);
+  padding: 24px 0;
+}
+.sidebar-header {
+  padding: 0 20px 16px;
+  border-bottom: 1.5px solid var(--g200);
+  margin-bottom: 12px;
+}
+.sidebar-header .eyebrow {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--g500);
+  margin-bottom: 6px;
+}
+.sidebar-header h1 {
+  font-family: var(--serif);
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  color: var(--slate);
+}
+.sidebar-meta {
+  padding: 0 20px;
+  margin-bottom: 16px;
+  font-size: 11px;
+  color: var(--g500);
+  font-family: var(--mono);
+}
+.sidebar-meta span { display: block; margin-bottom: 2px; }
+.sidebar nav { padding: 0 12px; }
+.sidebar nav a {
+  display: block;
+  padding: 6px 8px;
+  border-radius: 6px;
+  text-decoration: none;
+  color: var(--g700);
+  font-size: 13px;
+  line-height: 1.35;
+  transition: background 150ms ease, color 150ms ease;
+}
+.sidebar nav a:hover { background: var(--g100); }
+.sidebar nav a.active { background: var(--oat); color: var(--slate); font-weight: 500; }
+.sidebar nav a .sec-num {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--g500);
+  margin-right: 6px;
+}
+.nav-group {
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--g500);
+  padding: 14px 8px 4px;
+  margin-top: 4px;
+}
+.section-lead {
+  font-size: 13px;
+  color: var(--g700);
+  font-style: italic;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--g200);
+}
+
+/* ── main content ─── */
+.main {
+  padding: 32px 48px 120px;
+  max-width: 920px;
+}
+
+/* ── overview band ─── */
+.overview {
+  background: var(--paper);
+  border: 1.5px solid var(--g300);
+  border-radius: 12px;
+  padding: 24px 28px;
+  margin-bottom: 32px;
+}
+.overview h2 {
+  font-family: var(--serif);
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  margin-bottom: 12px;
+}
+.overview p {
+  margin-bottom: 10px;
+  color: var(--g700);
+}
+.overview .stat-row {
+  display: flex;
+  gap: 16px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+.stat-card {
+  background: var(--g50);
+  border: 1.5px solid var(--g200);
+  border-radius: 8px;
+  padding: 10px 14px;
+  flex: 1;
+  min-width: 140px;
+}
+.stat-card .label {
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--g500);
+  margin-bottom: 4px;
+}
+.stat-card .value {
+  font-family: var(--serif);
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--slate);
+}
+.stat-card .value.clay { color: var(--clay); }
+.stat-card .value.olive { color: var(--olive); }
+
+/* ── pipeline flow visual ─── */
+.pipeline-flow {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  margin: 20px 0 8px;
+}
+.stage-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  flex: 1;
+}
+.stage-num {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--g500);
+  margin-bottom: 4px;
+}
+.stage-pill {
+  background: var(--paper);
+  border: 1.5px solid var(--g300);
+  border-radius: 8px;
+  padding: 6px 8px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 500;
+  width: 100%;
+  position: relative;
+}
+.stage-pill.judgment {
+  border-color: var(--clay);
+  background: #FFF8F5;
+}
+.stage-pill.mechanical {
+  border-color: var(--g300);
+}
+.stage-pill.stateful {
+  border-color: var(--olive);
+  background: #F8FBF5;
+}
+.stage-type {
+  font-family: var(--mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-top: 4px;
+}
+.stage-type.judgment { color: var(--clay); }
+.stage-type.mechanical { color: var(--g500); }
+.stage-type.stateful { color: var(--olive); }
+.stage-arrow {
+  display: flex;
+  align-items: center;
+  padding: 0 2px;
+  color: var(--g300);
+  font-size: 18px;
+  margin-top: 14px;
+}
+
+/* ── sections ─── */
+.section {
+  margin-bottom: 8px;
+}
+.section-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  background: var(--paper);
+  border: 1.5px solid var(--g300);
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: var(--sans);
+  font-size: 14px;
+  color: var(--slate);
+  text-align: left;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+.section-toggle:hover { border-color: var(--oat); background: var(--g50); }
+.section-toggle.open { border-radius: 10px 10px 0 0; border-bottom-color: var(--g200); }
+.section-toggle .chevron {
+  font-size: 12px;
+  color: var(--g500);
+  transition: transform 180ms ease;
+  flex-shrink: 0;
+  width: 16px;
+  text-align: center;
+}
+.section-toggle.open .chevron { transform: rotate(90deg); }
+.section-toggle .sec-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--g500);
+  flex-shrink: 0;
+  min-width: 20px;
+}
+.section-toggle .sec-title {
+  font-family: var(--serif);
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+.section-toggle .sec-summary {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--g500);
+  flex-shrink: 0;
+}
+.section-toggle.tier1 { border-left: 3px solid var(--clay); }
+.section-toggle.tier1 .sec-title { color: var(--slate); }
+.section-toggle.tier2 { border-left: 3px solid var(--oat); }
+a.xref {
+  color: var(--clay-d);
+  text-decoration: underline;
+  text-decoration-color: var(--oat);
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.group-divider {
+  font-family: var(--mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--g500);
+  padding: 24px 0 8px;
+  margin-top: 8px;
+  border-top: 1.5px solid var(--g200);
+}
+.section-body {
+  display: none;
+  background: var(--paper);
+  border: 1.5px solid var(--g300);
+  border-top: none;
+  border-radius: 0 0 10px 10px;
+  padding: 20px 24px;
+}
+.section-body.open { display: block; }
+
+/* ── content elements ─── */
+.section-body h3 {
+  font-family: var(--serif);
+  font-size: 15px;
+  font-weight: 500;
+  margin: 20px 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 1.5px solid var(--g200);
+}
+.section-body h3:first-child { margin-top: 0; }
+.section-body p { margin-bottom: 10px; color: var(--g700); }
+.section-body ul, .section-body ol { margin: 8px 0 12px 20px; color: var(--g700); }
+.section-body li { margin-bottom: 4px; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+  font-size: 13px;
+}
+th {
+  text-align: left;
+  padding: 8px 10px;
+  background: var(--g100);
+  border-bottom: 1.5px solid var(--g300);
+  font-family: var(--mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--g500);
+  font-weight: 500;
+}
+td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--g200);
+  vertical-align: top;
+}
+tr:hover td { background: var(--g50); }
+td:first-child { font-weight: 500; }
+
+code {
+  font-family: var(--mono);
+  font-size: 12px;
+  background: var(--g100);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.callout {
+  background: #FFF8F5;
+  border-left: 3px solid var(--clay);
+  padding: 12px 16px;
+  border-radius: 0 8px 8px 0;
+  margin: 12px 0;
+  font-size: 13px;
+}
+.callout-olive {
+  background: #F8FBF5;
+  border-left: 3px solid var(--olive);
+  padding: 12px 16px;
+  border-radius: 0 8px 8px 0;
+  margin: 12px 0;
+  font-size: 13px;
+}
+.callout strong, .callout-olive strong { font-size: 12px; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.04em; }
+
+.chip {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  border: 1.5px solid;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.chip-clay { border-color: var(--clay); color: var(--clay-d); background: #FFF8F5; }
+.chip-olive { border-color: var(--olive); color: var(--olive); background: #F8FBF5; }
+.chip-gray { border-color: var(--g300); color: var(--g500); background: var(--g50); }
+
+/* ── leverage scale ─── */
+.leverage-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.leverage-fill {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--oat);
+}
+.leverage-fill.high { background: var(--clay); }
+.leverage-fill.vhigh { background: var(--clay-d); }
+.leverage-fill.highest { background: var(--slate); }
+
+/* ── decision cards ─── */
+.decision-card {
+  background: var(--g50);
+  border: 1.5px solid var(--g200);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+}
+.decision-card .decision-title {
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+.decision-card .decision-alt {
+  font-size: 12px;
+  color: var(--g500);
+  margin-bottom: 4px;
+}
+.decision-card .decision-rationale {
+  font-size: 13px;
+  color: var(--g700);
+}
+
+/* ── responsive ─── */
+@media (max-width: 920px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { position: static; height: auto; border-right: none; border-bottom: 1.5px solid var(--g300); }
+  .main { padding: 24px 20px 80px; }
+}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<!-- ── sidebar ─── -->
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <div class="eyebrow">Systems Analysis</div>
+    <h1>bos-onboard + bos-factory E2E Pipeline</h1>
+  </div>
+  <div class="sidebar-meta">
+    <span>2026-05-11</span>
+    <span>Post-build · #272 proven</span>
+  </div>
+  <nav id="nav">
+    <a href="#overview" class="active"><span class="sec-num">◎</span> Overview</a>
+    <div class="nav-group">How it works</div>
+    <a href="#s1"><span class="sec-num">1</span> Context</a>
+    <a href="#s4"><span class="sec-num">4</span> Data Flow</a>
+    <a href="#s2"><span class="sec-num">2</span> Containers</a>
+    <a href="#s3"><span class="sec-num">3</span> Components</a>
+    <div class="nav-group">What can go wrong</div>
+    <a href="#s5"><span class="sec-num">5</span> Failure Modes</a>
+    <a href="#s10"><span class="sec-num">10</span> Risks</a>
+    <a href="#s11"><span class="sec-num">11</span> Boundary Assumptions</a>
+    <div class="nav-group">Why it's designed this way</div>
+    <a href="#s7"><span class="sec-num">7</span> Leverage Points</a>
+    <a href="#s8"><span class="sec-num">8</span> Design Decisions</a>
+    <a href="#s6"><span class="sec-num">6</span> Feedback Loops</a>
+    <div class="nav-group">Operations</div>
+    <a href="#s9"><span class="sec-num">9</span> Constraints</a>
+    <a href="#s12"><span class="sec-num">12</span> Workflow Critique</a>
+  </nav>
+</aside>
+
+<!-- ── main content ─── -->
+<main class="main">
+
+<!-- overview band -->
+<div class="overview" id="overview">
+  <h2>Pipeline at a Glance</h2>
+  <p>This pipeline has <strong>one judgment step that everything depends on</strong> — AI-guided capture of business context into a Service Understanding Document (SUD). The six stages after it are mechanical transforms. If the capture is wrong, every downstream artifact is wrong. The SUD is the durable asset; dashboards are disposable projections regenerated from it.</p>
+
+  <div class="pipeline-flow">
+    <div class="stage-box">
+      <span class="stage-num">1</span>
+      <div class="stage-pill judgment">Capture<div class="stage-type judgment">Judgment</div></div>
+    </div>
+    <div class="stage-arrow">→</div>
+    <div class="stage-box">
+      <span class="stage-num">2</span>
+      <div class="stage-pill mechanical">Validate<div class="stage-type mechanical">Mechanical</div></div>
+    </div>
+    <div class="stage-arrow">→</div>
+    <div class="stage-box">
+      <span class="stage-num">3</span>
+      <div class="stage-pill mechanical">Render<div class="stage-type mechanical">Mechanical</div></div>
+    </div>
+    <div class="stage-arrow">→</div>
+    <div class="stage-box">
+      <span class="stage-num">4</span>
+      <div class="stage-pill stateful">Load<div class="stage-type stateful">Stateful</div></div>
+    </div>
+    <div class="stage-arrow">→</div>
+    <div class="stage-box">
+      <span class="stage-num">5</span>
+      <div class="stage-pill mechanical">Export<div class="stage-type mechanical">Mechanical</div></div>
+    </div>
+    <div class="stage-arrow">→</div>
+    <div class="stage-box">
+      <span class="stage-num">6</span>
+      <div class="stage-pill mechanical">Factory<div class="stage-type mechanical">Mechanical</div></div>
+    </div>
+    <div class="stage-arrow">→</div>
+    <div class="stage-box">
+      <span class="stage-num">7</span>
+      <div class="stage-pill stateful">Deploy<div class="stage-type stateful">Stateful</div></div>
+    </div>
+  </div>
+
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="label">Proven</div>
+      <div class="value olive">Stages 1–3, 6–7</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Not Built</div>
+      <div class="value clay">Alerts, Playbooks, Stories</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Services Through</div>
+      <div class="value">10+</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Silent Risk</div>
+      <div class="value clay">SUD quality ceiling</div>
+    </div>
+  </div>
+
+  <div class="callout" style="margin-top: 16px;">
+    <strong>Three things to know</strong><br>
+    1. The <strong>question instrument</strong> (50+ methodology questions) is the highest-leverage component — changing a question changes all future SUDs.<br>
+    2. The most dangerous failure is <strong>content quality</strong> — a SUD can pass all validators but contain wrong understanding. Only human review catches this.<br>
+    3. Three of five promised factory outputs (alerts, playbooks, stories) are <strong>designed but not built</strong>.
+  </div>
+</div>
+
+<div class="group-divider">How it works</div>
+
+<!-- Section 1: Context -->
+<div class="section" id="s1">
+  <button class="section-toggle tier1" onclick="toggle(this)">
+    <span class="chevron">▸</span>
+    <span class="sec-label">1</span>
+    <span class="sec-title">Context</span>
+    <span class="sec-summary">C4 Level 1</span>
+  </button>
+  <div class="section-body">
+    <div class="section-lead">The pipeline exists because manual dashboard creation doesn't scale, and business observability requires structured understanding before dashboards can be meaningful.</div>
+    <table>
+      <tr><th style="width:160px">Dimension</th><th>Detail</th></tr>
+      <tr><td>What it does</td><td>Transforms unstructured service source material into live Grafana business health dashboards through a seven-stage pipeline with one judgment step and six mechanical transforms.</td></tr>
+      <tr><td>Who uses it</td><td>Product Owners (fill business context), the PE (runs the pipeline), SREs/Dev teams (consume deployed dashboards), the BOS production app (stores service profiles).</td></tr>
+      <tr><td>Interacts with</td><td>Source material (arc42 docs, code, runbooks) → BOS .NET app (<code>/api/v1/services/import</code> and <code>/export</code>) → Grafana (dashboard deployment API) → live telemetry backends (Prometheus, Splunk, AppDynamics).</td></tr>
+      <tr><td>Why it exists</td><td>Manual dashboard creation doesn't scale. Business observability requires structured understanding (stakeholder expectations, causal models, four-layer signals) before dashboards can be meaningful.</td></tr>
+      <tr><td>Boundary</td><td><strong>In:</strong> capture → validate → render → load → export → factory → deploy. <strong>Out:</strong> telemetry backends, Grafana runtime, BOS app internal CRUD.</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- Section 2: Containers -->
+<div class="section" id="s2">
+  <button class="section-toggle" onclick="toggle(this)">
+    <span class="chevron">▸</span>
+    <span class="sec-label">2</span>
+    <span class="sec-title">Containers</span>
+    <span class="sec-summary">C4 Level 2 · 8 containers</span>
+  </button>
+  <div class="section-body">
+    <div class="section-lead">Eight containers, but the architecture is simple: one AI judgment step (bos-onboard), one database (BOS app), one deployment target (Grafana), and five mechanical transforms connecting them.</div>
+    <table>
+      <tr><th>Container</th><th>Responsibility</th><th>Interacts With</th></tr>
+      <tr><td>bos-onboard skill</td><td>AI-guided capture: reads source material, answers 50+ methodology questions, produces SUD YAML</td><td>Source material (in), SUD YAML (out), golden fixture (reference)</td></tr>
+      <tr><td>SUD Schema + Questions</td><td>Defines WHAT to capture and the structural contract</td><td>bos-onboard (constrains), validators (enforced by), field-manifest (maps to)</td></tr>
+      <tr><td>Validation Layer</td><td>Three-layer gate: YAML syntax → JSON schema → quality (citations, reasoning depth, provenance)</td><td>SUD YAML (in), pass/fail + structured errors (out)</td></tr>
+      <tr><td>Render Engine</td><td>Produces human-reviewable HTML from SUD + questions context</td><td>Validated SUD (in), HTML view (out)</td></tr>
+      <tr><td>BOS Production App</td><td>.NET API: stores service profiles, stakeholders, SLIs, impacts, traceability</td><td>SUD via ingest_sud.py (in), ServiceExportDto JSON (out)</td></tr>
+      <tr><td>Pipeline Runner</td><td>Orchestrates stages 2–7 sequentially with gate checks</td><td>All downstream containers</td></tr>
+      <tr><td>Dashboard Factory</td><td>Reads ServiceExportDto → generates Grafana dashboard JSON (four-layer layout, datasource-agnostic)</td><td>ServiceExportDto (in), Grafana dashboard JSON (out)</td></tr>
+      <tr><td>Grafana Deployment</td><td>POSTs dashboard JSON to Grafana API</td><td>Dashboard JSON (in), live dashboard URL (out)</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- Section 3: Components -->
+<div class="section" id="s3">
+  <button class="section-toggle" onclick="toggle(this)">
+    <span class="chevron">▸</span>
+    <span class="sec-label">3</span>
+    <span class="sec-title">Components</span>
+    <span class="sec-summary">C4 Level 3 · 5 subsystems</span>
+  </button>
+  <div class="section-body">
+    <h3>3a. Capture (bos-onboard skill)</h3>
+    <table>
+      <tr><th>Component</th><th>File</th><th>Role</th><th style="width:70px">State</th></tr>
+      <tr><td>Skill definition</td><td><code>.claude/skills/bos-onboard/SKILL.md</code></td><td>Methodology, capture rules, display field patterns</td><td><span class="chip chip-gray">Stateless</span></td></tr>
+      <tr><td>Question instrument</td><td><code>bos-factory/onboard/sud-questions.yaml</code></td><td>50+ questions with IDs, guidance, prior-art refs</td><td><span class="chip chip-gray">Stateless</span></td></tr>
+      <tr><td>Golden fixture</td><td><code>bos-factory/golden-fixture/pitstop-*.yaml</code></td><td>Structural exemplar (~600 lines, 51/51 questions)</td><td><span class="chip chip-gray">Stateless</span></td></tr>
+      <tr><td>SUD schema</td><td><code>bos-factory/schema/sud-schema.json</code></td><td>JSON Schema v2020-12 — structural contract</td><td><span class="chip chip-gray">Stateless</span></td></tr>
+      <tr><td>Field manifest</td><td><code>bos-factory/schema/field-manifest.yaml</code></td><td>74 fields: question → schema → DTO mapping</td><td><span class="chip chip-gray">Stateless</span></td></tr>
+      <tr><td>Export DTO schema</td><td><code>bos-factory/schema/service-export-dto.schema.json</code></td><td>Contract for BOS app import/export (7 entities)</td><td><span class="chip chip-gray">Stateless</span></td></tr>
+    </table>
+
+    <h3>3b. Validation + Rendering</h3>
+    <table>
+      <tr><th>Component</th><th>File</th><th>Role</th><th style="width:70px">State</th></tr>
+      <tr><td>SUD validator</td><td><code>validate_sud.py</code></td><td>Three-layer: syntax, schema, quality checks</td><td><span class="chip chip-gray">Stateless</span></td></tr>
+      <tr><td>Coverage validator</td><td><code>validate_coverage_sud.py</code></td><td>Bidirectional: every question ↔ every schema field</td><td><span class="chip chip-gray">Stateless</span></td></tr>
+      <tr><td>Field manifest validator</td><td><code>validate_field_manifest.py</code></td><td>4 checks: manifest ↔ DTO/fixture/questions/factory</td><td><span class="chip chip-gray">Stateless</span></td></tr>
+      <tr><td>SUD renderer</td><td><code>render_sud.py</code></td><td>SUD + questions → HTML with provenance coloring</td><td><span class="chip chip-gray">Stateless</span></td></tr>
+      <tr><td>Instrument renderer</td><td><code>render_instrument.py</code></td><td>Questions → standalone HTML instrument</td><td><span class="chip chip-gray">Stateless</span></td></tr>
+    </table>
+
+    <h3>3c. Pipeline Runner</h3>
+    <table>
+      <tr><th>Component</th><th>File</th><th>Role</th><th style="width:70px">State</th></tr>
+      <tr><td>CLI entry</td><td><code>run_pipeline.py</code></td><td>Loads env.yaml, runs preflight, orchestrates stages</td><td><span class="chip chip-gray">Stateless</span></td></tr>
+      <tr><td>Orchestrator</td><td><code>orchestrator.py</code></td><td>Wires stage execution, manages PipelineContext</td><td><span class="chip chip-clay">Transient</span></td></tr>
+      <tr><td>Journey report</td><td><code>journey_report.py</code></td><td>Progressive HTML — stages light up as they complete</td><td><span class="chip chip-clay">Writes HTML</span></td></tr>
+      <tr><td>Config</td><td><code>env.yaml</code></td><td>Grafana URL, API key, BOS app URL, org_id</td><td><span class="chip chip-olive">Stateful</span></td></tr>
+    </table>
+
+    <h3>3d. Load + Export (BOS App)</h3>
+    <table>
+      <tr><th>Component</th><th>File</th><th>Role</th><th style="width:70px">State</th></tr>
+      <tr><td>SUD ingestor</td><td><code>ingest_sud.py</code></td><td>SUD YAML → DTO JSON → POST to BOS app</td><td><span class="chip chip-gray">Stateless</span></td></tr>
+      <tr><td>BOS app import</td><td><code>ServicesController.cs</code></td><td><code>POST /import</code> — atomic create-or-replace</td><td><span class="chip chip-olive">Stateful</span></td></tr>
+      <tr><td>BOS app export</td><td>Same controller</td><td><code>GET /export</code> — serialize to DTO</td><td><span class="chip chip-olive">Reads DB</span></td></tr>
+      <tr><td>Database context</td><td><code>BosDbContext.cs</code></td><td>EF Core — schema definition</td><td><span class="chip chip-olive">Stateful</span></td></tr>
+    </table>
+
+    <h3>3e. Dashboard Factory</h3>
+    <table>
+      <tr><th>Component</th><th>File</th><th>Role</th><th style="width:70px">State</th></tr>
+      <tr><td>Dashboard generator</td><td><code>generate_service_dashboard.py</code></td><td>ServiceExportDto → Grafana dashboard JSON (four-layer)</td><td><span class="chip chip-gray">Stateless</span></td></tr>
+      <tr><td>Query adapters</td><td><code>query_adapters.py</code></td><td>Signal defs → native queries (PromQL, SPLOC, AppD)</td><td><span class="chip chip-gray">Stateless</span></td></tr>
+      <tr><td>Datasource config</td><td><code>datasource-config.yaml</code></td><td>Maps dataSourceType → Grafana datasource UID</td><td><span class="chip chip-olive">Env-specific</span></td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- Section 4: Data Flow -->
+<div class="section" id="s4">
+  <button class="section-toggle tier1" onclick="toggle(this)">
+    <span class="chevron">▸</span>
+    <span class="sec-label">4</span>
+    <span class="sec-title">Data Flow</span>
+    <span class="sec-summary">4 key flows · 4 stateful stores</span>
+  </button>
+  <div class="section-body">
+    <div class="section-lead">Four paths through the system — capture, profile management, deployment, and regression. The SUD YAML is the single durable asset; everything downstream is regenerable from it.</div>
+    <h3>Key Flows</h3>
+    <ul>
+      <li><strong>Capture path:</strong> Source material → bos-onboard → SUD YAML (the durable asset; everything downstream is regenerable)</li>
+      <li><strong>Profile path:</strong> SUD YAML → ingest_sud.py → BOS app (profile becomes queryable and manageable)</li>
+      <li><strong>Deployment path:</strong> BOS app → ServiceExportDto → dashboard factory → Grafana</li>
+      <li><strong>Regression path:</strong> Golden fixture → validators → factory tests</li>
+    </ul>
+
+    <h3>Stateful Stores</h3>
+    <table>
+      <tr><th>Store</th><th>What</th><th>Durability</th></tr>
+      <tr><td>SUD YAML files</td><td>The captured understanding</td><td><span class="chip chip-olive">Durable</span> — versioned in git</td></tr>
+      <tr><td>BOS app database</td><td>The managed service profile</td><td><span class="chip chip-olive">Durable</span> — transactional, atomic import</td></tr>
+      <tr><td>Grafana</td><td>The deployed dashboard</td><td><span class="chip chip-gray">Disposable</span> — regenerable from profile</td></tr>
+      <tr><td>env.yaml</td><td>Environment-specific config</td><td><span class="chip chip-clay">Env-specific</span> — URLs, API keys, datasource UIDs</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="group-divider">What can go wrong</div>
+
+<!-- Section 5: Failure Modes -->
+<div class="section" id="s5">
+  <button class="section-toggle tier1" onclick="toggle(this)">
+    <span class="chevron">▸</span>
+    <span class="sec-label">5</span>
+    <span class="sec-title">Failure Modes</span>
+    <span class="sec-summary">11 modes · 1 silent risk</span>
+  </button>
+  <div class="section-body">
+    <div class="section-lead">Most failures are caught by validators and produce structured errors. The dangerous one — wrong but schema-valid understanding — can only be caught by human review.</div>
+    <div class="callout">
+      <strong>Silent failure risk</strong><br>
+      The most dangerous failure is SUD content quality — a SUD can be schema-valid but contain shallow, ungrounded understanding. Provenance discipline and quality checks mitigate, but can't catch <em>wrong</em> understanding, only <em>unsupported</em> understanding.
+    </div>
+    <table>
+      <tr><th>If This Fails</th><th>Consequence</th><th>Fallback</th></tr>
+      <tr><td>Source material thin/absent</td><td>SUD quality degrades: high <code>constructed</code> provenance</td><td>Trust summary makes provenance visible; gaps section captures unknowns</td></tr>
+      <tr><td>Invalid YAML produced</td><td>Pipeline halts</td><td><a class="xref" onclick="openSection('s3')">validate_sud.py</a> catches at syntax layer (exit 1)</td></tr>
+      <tr><td>Missing schema fields</td><td>Pipeline halts</td><td>Structured SCHEMA ERROR with field path + expected type</td></tr>
+      <tr><td>Shallow reasoning (&lt;30 words)</td><td>Low-quality understanding persists</td><td>QUALITY ERROR; <a class="xref" onclick="openSection('s3')">bos-onboard skill</a> re-engages with source material</td></tr>
+      <tr><td>BOS app down during load</td><td>Load stage fails</td><td>ensure_env.py attempts start; pipeline halts if unrecoverable</td></tr>
+      <tr><td>Import fails atomically</td><td>No partial state — transaction rolls back</td><td>Re-run after fixing SUD or app issue</td></tr>
+      <tr><td>Datasource not in Grafana</td><td>Panels show "No data"</td><td>datasource-config.yaml must match instance</td></tr>
+      <tr><td>html-graphics blank on load</td><td>Panels render blank</td><td>Reload the page (known timing race)</td></tr>
+      <tr><td>Traceability FK mismatch</td><td>Links break silently</td><td>validate_derivation.py catches post-load</td></tr>
+      <tr><td>Golden fixture drifts</td><td>Tests fail</td><td>Bidirectional coverage audit catches early</td></tr>
+      <tr><td>Skill instructions desync</td><td>SUD doesn't match runner expectations</td><td>Schema is the stable contract</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- Section 10: Risks -->
+<div class="section" id="s10">
+  <button class="section-toggle" onclick="toggle(this)">
+    <span class="chevron">▸</span>
+    <span class="sec-label">10</span>
+    <span class="sec-title">Risks &amp; Limitations</span>
+    <span class="sec-summary">6 risks</span>
+  </button>
+  <div class="section-body">
+    <div class="section-lead">The biggest risk is the content quality ceiling — validators can't catch wrong understanding. The second is that three of five factory outputs are vapor. Everything else is manageable operational risk.</div>
+    <table>
+      <tr><th>Risk</th><th>Detail</th></tr>
+      <tr><td>Content quality ceiling</td><td>Validators catch structural issues but cannot catch <em>wrong</em> understanding. Mitigation: human review + provenance visibility.</td></tr>
+      <tr><td>Single-pipeline bottleneck</td><td>Sequential processing, no parallelism. Acceptable at 10s of services; needs rearchitecting for 100s.</td></tr>
+      <tr><td>Wizard of Oz stages</td><td>Alert (Stage 4), playbook (Stage 5), and story generation are designed but not built. Three of five promised production lines are vapor.</td></tr>
+      <tr><td>Traceability FK fragility</td><td>Name-based foreign keys. Renaming a signal breaks links silently unless validate_derivation.py is run.</td></tr>
+      <tr><td>Single golden fixture dominance</td><td>pitstop-workshop-mgmt-sud.yaml is the template. Drift or idiosyncrasies propagate to all new SUDs.</td></tr>
+      <tr><td>Schema-ahead backlog</td><td>Fields captured as schema-ahead accumulate. Without periodic promotion reviews, they become dead weight.</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- Section 11: Boundary Assumptions -->
+<div class="section" id="s11">
+  <button class="section-toggle" onclick="toggle(this)">
+    <span class="chevron">▸</span>
+    <span class="sec-label">11</span>
+    <span class="sec-title">Boundary Assumptions</span>
+    <span class="sec-summary">6 assumptions</span>
+  </button>
+  <div class="section-body">
+    <table>
+      <tr><th>Assumption</th><th>Risk if Wrong</th></tr>
+      <tr><td>Source material exists</td><td>Greenfield services produce mostly <code>constructed</code> provenance. SUD quality directly proportional to source richness.</td></tr>
+      <tr><td>BOS app is running and accessible</td><td>New PC setup or environment drift breaks the load stage.</td></tr>
+      <tr><td>Grafana instance has correct datasources</td><td>Datasource UID mismatch produces silent "no data" panels.</td></tr>
+      <tr><td>ServiceExportDto schema is stable</td><td>Uncoordinated DTO changes break ingestor, factory, and all validators simultaneously.</td></tr>
+      <tr><td>AI capture quality is sufficient</td><td>Model degradation or prompt drift reduces quality without obvious signal until human review.</td></tr>
+      <tr><td>Human reviews rendered HTML</td><td>If review is skipped, incorrect understanding propagates to live dashboards.</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="group-divider">Why it's designed this way</div>
+
+<!-- Section 6: Feedback Loops -->
+<div class="section" id="s6">
+  <button class="section-toggle" onclick="toggle(this)">
+    <span class="chevron">▸</span>
+    <span class="sec-label">6</span>
+    <span class="sec-title">Feedback Loops</span>
+    <span class="sec-summary">2 reinforcing · 2 balancing</span>
+  </button>
+  <div class="section-body">
+    <div class="section-lead">Two reinforcing loops drive improvement (more onboardings → better quality). Two balancing loops prevent degradation (validation gates, factory contracts). The delay in schema promotion (weeks to months) is the bottleneck in the reinforcing loop.</div>
+    <div class="callout-olive">
+      <strong>Reinforcing — SUD as growth sensor</strong><br>
+      Each service onboarded surfaces schema-ahead fields → accumulates evidence for data model evolution → richer schema → richer SUDs → richer factory output. Multiple SUDs asking the same question is the signal to promote a field.
+    </div>
+    <div class="callout-olive">
+      <strong>Reinforcing — Golden fixture accumulation</strong><br>
+      Each completed SUD becomes a fixture → more exemplars → better pattern matching → faster, higher-quality onboarding. Currently 10+ fixtures across Astronomy Shop and Pitstop domains.
+    </div>
+    <div class="callout">
+      <strong>Balancing — Validation gates</strong><br>
+      Validator strictness constrains quality floor → prevents degradation → but creates friction during capture. Balance point: strict enough to prevent garbage, loose enough for iteration.
+    </div>
+    <div class="callout">
+      <strong>Balancing — Factory acceptance contract</strong><br>
+      validate_onboarding.py tests ensure passing = factory will consume without error. Couples validation to factory's actual requirements, preventing drift in either direction.
+    </div>
+    <h3>Delay Characteristics</h3>
+    <ul>
+      <li><strong>Schema-ahead → promotion:</strong> Weeks to months (requires multiple SUDs showing same gap)</li>
+      <li><strong>Source quality → SUD quality:</strong> Immediate, but only visible after render + human review</li>
+      <li><strong>Factory improvement → dashboard improvement:</strong> Zero delay for new services; existing dashboards require re-generation</li>
+    </ul>
+  </div>
+</div>
+
+<!-- Section 7: Leverage Points -->
+<div class="section" id="s7">
+  <button class="section-toggle tier1" onclick="toggle(this)">
+    <span class="chevron">▸</span>
+    <span class="sec-label">7</span>
+    <span class="sec-title">Leverage Points</span>
+    <span class="sec-summary">8 levels</span>
+  </button>
+  <div class="section-body">
+    <div class="section-lead">The highest-leverage interventions are at the paradigm and rules level — the organizing model and the question instrument. Most active work targets these levels, not parameters.</div>
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div class="decision-card">
+        <div class="leverage-bar"><div class="leverage-fill highest" style="width: 100%"></div></div>
+        <div class="decision-title">Paradigm — "Understanding first, artifacts second"</div>
+        <div class="decision-rationale">SUD as intermediate representation, dashboards as disposable projections. If this inverts, the entire system degrades.</div>
+      </div>
+      <div class="decision-card">
+        <div class="leverage-bar"><div class="leverage-fill vhigh" style="width: 88%"></div></div>
+        <div class="decision-title">Goal — Four-layer model</div>
+        <div class="decision-rationale">Business Health → Business Impact → Process → System. Organizes signals, dashboard layout, and stakeholder communication.</div>
+      </div>
+      <div class="decision-card">
+        <div class="leverage-bar"><div class="leverage-fill vhigh" style="width: 82%"></div></div>
+        <div class="decision-title">Rules — Question instrument (sud-questions.yaml)</div>
+        <div class="decision-rationale">Determines WHAT gets captured. Adding/removing/reframing a question changes all future SUDs.</div>
+      </div>
+      <div class="decision-card">
+        <div class="leverage-bar"><div class="leverage-fill high" style="width: 70%"></div></div>
+        <div class="decision-title">Information flow — Provenance discipline</div>
+        <div class="decision-rationale">Extracted / inferred / constructed labeling. Makes understanding quality visible to reviewers.</div>
+      </div>
+      <div class="decision-card">
+        <div class="leverage-bar"><div class="leverage-fill high" style="width: 64%"></div></div>
+        <div class="decision-title">Feedback — Schema-ahead → schema promotion loop</div>
+        <div class="decision-rationale">Each promotion unlocks new factory outputs for ALL future services.</div>
+      </div>
+      <div class="decision-card">
+        <div class="leverage-bar"><div class="leverage-fill" style="width: 48%"></div></div>
+        <div class="decision-title">Stock — The SUD YAML itself</div>
+        <div class="decision-rationale">The durable asset. Everything downstream regenerates from it.</div>
+      </div>
+      <div class="decision-card">
+        <div class="leverage-bar"><div class="leverage-fill" style="width: 32%"></div></div>
+        <div class="decision-title">Flow — Adding more source material</div>
+        <div class="decision-rationale">Improves SUD quality for one service.</div>
+      </div>
+      <div class="decision-card">
+        <div class="leverage-bar"><div class="leverage-fill" style="width: 18%"></div></div>
+        <div class="decision-title">Parameter — Validation thresholds</div>
+        <div class="decision-rationale">Tweaking word count, citation count. Adjusts quality floor marginally.</div>
+      </div>
+    </div>
+    <div class="callout-olive" style="margin-top: 16px;">
+      <strong>Current interventions at the right levels</strong><br>
+      The question instrument (Very High) and schema evolution (High) are active work areas. The paradigm (Highest) is stable and proven.
+    </div>
+  </div>
+</div>
+
+<!-- Section 8: Design Decisions -->
+<div class="section" id="s8">
+  <button class="section-toggle tier2" onclick="toggle(this)">
+    <span class="chevron">▸</span>
+    <span class="sec-label">8</span>
+    <span class="sec-title">Design Decisions</span>
+    <span class="sec-summary">9 decisions</span>
+  </button>
+  <div class="section-body">
+    <div class="decision-card">
+      <div class="decision-title">SUD YAML as intermediate representation</div>
+      <div class="decision-alt">Alternatives: direct CSV templates, direct database entry, JSON-first</div>
+      <div class="decision-rationale">YAML is human-readable + AI-writable; decouples judgment (capture) from mechanics (factories); the durable asset survives factory changes.</div>
+    </div>
+    <div class="decision-card">
+      <div class="decision-title">One judgment step, six mechanical transforms</div>
+      <div class="decision-alt">Alternatives: all-AI pipeline, all-human pipeline</div>
+      <div class="decision-rationale">Judgment can't be automated reliably (understanding requires inference); mechanics should be automated (transforms are deterministic).</div>
+    </div>
+    <div class="decision-card">
+      <div class="decision-title">Question instrument as methodology</div>
+      <div class="decision-alt">Alternatives: freeform capture, checklist, template</div>
+      <div class="decision-rationale">Questions with IDs enable traceability to schema fields, enhanced guidance, prior-art references, downstream population mappings.</div>
+    </div>
+    <div class="decision-card">
+      <div class="decision-title">Discriminated union on signal_type</div>
+      <div class="decision-alt">Alternatives: single signal shape with optional fields</div>
+      <div class="decision-rationale">sli_ratio (numerator/denominator) and sli_threshold (numerator/operator/value) are structurally different; optional fields allow invalid combinations.</div>
+    </div>
+    <div class="decision-card">
+      <div class="decision-title">Datasource-agnostic factory</div>
+      <div class="decision-alt">Alternatives: per-datasource generators</div>
+      <div class="decision-rationale">Same dashboard structure regardless of telemetry backend; query_adapters.py handles syntax; datasource-config.yaml maps to Grafana UIDs.</div>
+    </div>
+    <div class="decision-card">
+      <div class="decision-title">Provenance labeling (extracted / inferred / constructed)</div>
+      <div class="decision-alt">Alternatives: no provenance, binary confident/unconfident</div>
+      <div class="decision-rationale">Three-level maps to audit trail: extracted = verifiable, inferred = challengeable, constructed = flagged for validation.</div>
+    </div>
+    <div class="decision-card">
+      <div class="decision-title">Atomic import (create-or-replace)</div>
+      <div class="decision-alt">Alternatives: incremental updates, merge semantics</div>
+      <div class="decision-rationale">Prevents partial states; safe re-onboarding; simpler error recovery.</div>
+    </div>
+    <div class="decision-card">
+      <div class="decision-title">Golden fixture as structural exemplar</div>
+      <div class="decision-alt">Alternatives: schema-only, multiple exemplar formats</div>
+      <div class="decision-rationale">Single ~600-line exemplar provides field naming, nesting order, block scalar patterns — prevents drift across SUDs.</div>
+    </div>
+    <div class="decision-card">
+      <div class="decision-title">Four-layer dashboard organization</div>
+      <div class="decision-alt">Alternatives: alphabetical, by datasource, by signal type</div>
+      <div class="decision-rationale">Business Health at top → System Health at bottom maps to stakeholder reading order.</div>
+    </div>
+  </div>
+</div>
+
+<div class="group-divider">Operations</div>
+
+<!-- Section 9: Constraints -->
+<div class="section" id="s9">
+  <button class="section-toggle" onclick="toggle(this)">
+    <span class="chevron">▸</span>
+    <span class="sec-label">9</span>
+    <span class="sec-title">Constraints</span>
+    <span class="sec-summary">7 constraints</span>
+  </button>
+  <div class="section-body">
+    <table>
+      <tr><th>Constraint</th><th>Impact</th></tr>
+      <tr><td>Air gap</td><td>Pipeline runs outside the enterprise environment; artifacts transfer manually. No direct API integration with enterprise systems.</td></tr>
+      <tr><td>BOS app as black box</td><td>Pipeline treats import/export endpoints as contracts. Internal changes don't affect pipeline unless DTO schema changes.</td></tr>
+      <tr><td>Grafana html-graphics plugin</td><td>Single-panel HTML dashboards. Known blank-panel timing issue requiring page reload.</td></tr>
+      <tr><td>Datasource availability</td><td>Factory generates queries for configured datasources. Missing datasource → "No data" panels.</td></tr>
+      <tr><td>EF Core / .NET runtime</td><td>BOS app requires .NET SDK. ensure_env.py can start but can't install.</td></tr>
+      <tr><td>Schema stability contract</td><td>ServiceExportDto is the stable interface. Adding fields requires coordinated changes across 7 components.</td></tr>
+      <tr><td>Windows environment</td><td>UTF-8 encoding with <code>curl -d</code> requires <code>--data-binary</code>. Git Bash symlinks require <code>MSYS=winsymlinks:nativestrict</code>.</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- Section 12: Workflow Critique -->
+<div class="section" id="s12">
+  <button class="section-toggle" onclick="toggle(this)">
+    <span class="chevron">▸</span>
+    <span class="sec-label">12</span>
+    <span class="sec-title">Workflow Critique</span>
+    <span class="sec-summary">Well-designed · 1 refinement</span>
+  </button>
+  <div class="section-body">
+    <div class="section-lead">Well-designed workflow with one primary refinement needed: the PO should review the rendered HTML before deployment, but the pipeline doesn't require it.</div>
+    <p><strong>Actors:</strong> PE (runs pipeline, reviews, deploys), bos-onboard skill (judgment step), BOS app (stores profiles), Service owner/PO (provides sources, consumes dashboards).</p>
+
+    <table>
+      <tr><th>Criterion</th><th>Assessment</th></tr>
+      <tr><td>Goal-Process Alignment</td><td><span class="chip chip-olive">Aligned</span> — SUD captures understanding; factory manifests it.</td></tr>
+      <tr><td>Step Necessity</td><td>All 7 stages necessary. One debatable: Export (Stage 5) — factory could read directly, but API round-trip provides contract enforcement.</td></tr>
+      <tr><td>Step Sufficiency</td><td><span class="chip chip-clay">Gap</span> — No automated regression test post-deploy. No provenance quality trending across SUDs.</td></tr>
+      <tr><td>Sequence Optimality</td><td>Optimal. Each stage gates the next. One minor optimization: Render could run parallel with Load.</td></tr>
+      <tr><td>Actor Appropriateness</td><td><span class="chip chip-clay">Gap</span> — PO doesn't interact with pipeline; PE proxies. PO should review rendered HTML before deployment.</td></tr>
+      <tr><td>Failure Recovery</td><td>Graceful at each stage. One gap: successful import but failed deploy leaves profile without dashboard.</td></tr>
+    </table>
+
+    <div class="callout-olive" style="margin-top: 16px;">
+      <strong>Verdict: Well-designed</strong><br>
+      Primary refinement: enforce PO review gate between render and deploy. The pipeline produces the artifact for this review but doesn't require it.
+    </div>
+
+    <h3>Expert Redesign Recommendations</h3>
+    <ol>
+      <li>Add PO review gate between render and load</li>
+      <li>Add post-deploy smoke test (HTTP 200 with data?)</li>
+      <li>Make export → factory a single step for local runs</li>
+      <li>Add telemetry on SUD quality trending (provenance distribution over time)</li>
+    </ol>
+  </div>
+</div>
+
+</main>
+</div>
+
+<script>
+function openSection(id) {
+  const section = document.getElementById(id);
+  if (!section) return;
+  const btn = section.querySelector('.section-toggle');
+  const body = section.querySelector('.section-body');
+  if (btn && body && !btn.classList.contains('open')) {
+    btn.classList.add('open');
+    body.classList.add('open');
+  }
+  document.querySelectorAll('#nav a').forEach(a => a.classList.remove('active'));
+  const link = document.querySelector(`#nav a[href="#${id}"]`);
+  if (link) link.classList.add('active');
+  section.scrollIntoView({ behavior: 'smooth' });
+}
+
+function toggle(btn) {
+  const body = btn.nextElementSibling;
+  const isOpen = btn.classList.toggle('open');
+  body.classList.toggle('open', isOpen);
+  // update sidebar active state
+  const sectionId = btn.parentElement.id;
+  if (sectionId && isOpen) {
+    document.querySelectorAll('#nav a').forEach(a => a.classList.remove('active'));
+    const link = document.querySelector(`#nav a[href="#${sectionId}"]`);
+    if (link) link.classList.add('active');
+  }
+}
+
+// sidebar click opens section
+document.querySelectorAll('#nav a').forEach(link => {
+  link.addEventListener('click', e => {
+    e.preventDefault();
+    const id = link.getAttribute('href').slice(1);
+    document.querySelectorAll('#nav a').forEach(a => a.classList.remove('active'));
+    link.classList.add('active');
+    if (id === 'overview') {
+      document.getElementById('overview').scrollIntoView({ behavior: 'smooth' });
+      return;
+    }
+    const section = document.getElementById(id);
+    if (!section) return;
+    const btn = section.querySelector('.section-toggle');
+    const body = section.querySelector('.section-body');
+    if (btn && body && !btn.classList.contains('open')) {
+      btn.classList.add('open');
+      body.classList.add('open');
+    }
+    section.scrollIntoView({ behavior: 'smooth' });
+  });
+});
+
+// scroll spy for sidebar
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const id = entry.target.id;
+      document.querySelectorAll('#nav a').forEach(a => a.classList.remove('active'));
+      const link = document.querySelector(`#nav a[href="#${id}"]`);
+      if (link) link.classList.add('active');
+    }
+  });
+}, { rootMargin: '-20% 0px -70% 0px' });
+
+document.querySelectorAll('.section, .overview').forEach(el => {
+  if (el.id) observer.observe(el);
+});
+</script>
+</body>
+</html>
