@@ -1,2 +1,19 @@
 -
  
+Subject: Splunk Engineering Summit — Day 1 Recap (May 18, NYC)
+
+Splunk's performance and stability issues have been impacting incident response across LOBs — slow searches, queuing, and outages that affect everyone on the MIM call at the same time. Critical fixes from Splunk slipped 4 months. abc escalated to Cisco leadership, and a 3-day engineering summit was convened in NYC this week to compress the timeline. PE and engineering representatives from across the LOBs are attending.
+
+Search queuing: 12% today vs <1% target. 1.1 million searches run daily across all LOBs on a platform that can't keep up with the demand. When you run a search and it sits waiting, that's why.
+
+The platform is being split by LOB. Today every LOB's workload runs on one shared cluster. A single hardware failure on May 5 degraded search for everyone for 90+ minutes. The analysis showed that different LOBs have very different usage patterns — CT is search-heavy at ~37% of search volume, DTI is data-heavy at ~90 TB/day. Separating them reduces the blast radius, improves performance for both, and brings each environment to a size Splunk supports well across other customers. The room agreed on the direction. CT's dedicated search environment is first, targeted for June 30.
+
+Data replication — September target. Today, if one server has a problem, any data on that server becomes unsearchable. That's the root cause of the May 5 impact. The fix: every piece of data gets stored on two servers instead of one. Server failures stop cascading into platform-wide outages. This is also what makes four-nines availability possible — a requirement drove that reframed the engineering conversation for the rest of the day.
+
+The September dates haven't moved yet. The fixes that triggered this escalation are still targeted for September 30. Days 2-3 will push on this.
+
+No disaster recovery exists today. A backup environment is being built — partial capability by July, full DR by October. WF is building this ourselves because Splunk has no committed timeline for their native solution.
+
+Platform visibility for LOB teams. I raised the need for a view that answers "is Splunk healthy right now?" from our perspective — not an infrastructure dashboard that requires understanding Splunk internals. Still being worked.
+
+What's ahead: Whether September dates compress, the upgrade path, and reducing the impact of maintenance windows. Executive readout to leadership May 21.
