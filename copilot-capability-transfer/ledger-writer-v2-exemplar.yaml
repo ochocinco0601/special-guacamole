@@ -1,0 +1,1208 @@
+schema_version: "2.0.0"
+
+metadata:
+  service_id: boa-ledger-writer
+  display_name: Ledger-Writer Service
+  service_name: boa-ledger-writer
+  methodology: "BOS outside-in (KA01, KA02), SLODLC Discover, SRE SLO rationale, ArchiMate motivation extension, GQM, Meyer DbC, SEI QA Scenarios"
+
+sources:
+  - id: S1
+    path: src/ledger/ledgerwriter/
+    type: behavioral
+    description: "Bank of Anthos source code — LedgerWriterController.java, TransactionValidator.java, LedgerWriterApplication.java"
+  - id: S2
+    path: README.md
+    type: descriptive
+    description: "Bank of Anthos README and docs/ — service descriptions, architecture overview"
+  - id: S3
+    path: kubernetes-manifests/ledger-writer.yaml
+    type: definitional
+    description: "Kubernetes manifests — resource limits, readiness probes, environment config"
+  - id: S4
+    path: design/sud-needs-decomposition-spike.md
+    type: descriptive
+    description: "Cross-service spike — critical dependency analysis, Send Payment flow, precondition violation analysis"
+  - id: S5
+    path: extras/prometheus/
+    type: descriptive
+    description: "Prometheus/Grafana extras — metrics dashboards, alerting rules"
+
+service:
+  business_purpose: |
+    Accepts and validates customer payment transactions before writing them to the bank's ledger. Acts as the transaction acceptance gate — enforces authorization, balance sufficiency, duplicate prevention, and format validation before any money moves. [S1: LedgerWriterController.java, TransactionValidator.java]
+  business_purpose_display: "Validates and records all customer payment transactions — the single gate through which every payment flows."
+  business_position: |
+    Critical-path, payment-processing. Ledger-writer is the only path for customers to send money. Every payment goes through this service — there is no alternative channel, no degraded mode, no retry queue. When ledger-writer fails, customers experience immediate, total payment inability. [S1: no fallback path in controller; S4: critical dependency analysis]
+  tier: 1
+  tier_reasoning: |
+    Critical path for all payment transactions. Ledger-writer failure blocks 100% of customer payment activity. No fallback or degraded mode exists. Regulatory exposure: every transaction must produce an auditable record. [S1: no fallback path in controller; S4: critical dependency analysis]
+  business_unit: Bank of Anthos — Payments
+  functional_category: Transaction Processing
+  functional_category_reasoning: |
+    Validates and persists financial transactions — the core transaction processing function. Each request either completes the full validation chain and persists, or rejects with a specific reason. [S2: "Accepts and validates transactions before writing to ledger"]
+  product_owner: Payments PO
+  technical_owner: Ledger Team
+  org_id: BOA-PAYMENTS
+  app_id: APP-LEDGER-WRITER
+  tags:
+    - payments
+    - ledger
+    - critical-path
+    - financial-services
+    - regulatory
+  custom_telemetry: |
+    Spring Boot Actuator metrics via Micrometer. JVM memory (jvm/memory/used), Tomcat HTTP metrics (request count, response time, connection pool), Hibernate JPA statistics, Guava cache hit/miss rates (GuavaCacheMetrics). Stackdriver metrics registry configured with k8s resource labels. Spring Cloud Sleuth tracing at 100% sampling rate when enabled. [S1: LedgerWriterApplication.java metrics config, application.properties]
+  dependencies: |
+    Frontend → Ledger-Writer → {Balance-Reader (HTTP sync), Ledger-DB (JPA sync)}
+    User-Service → JWT public key (startup-only, mounted via secret)
+
+    Critical dependencies:
+    - Balance-Reader (HTTP, sync): Required for all internal (same-bank) transactions. Failure returns HTTP 500 — blocks ALL local payments. No circuit breaker, no timeout override, no fallback.
+    - Ledger-DB (PostgreSQL, JPA): Required for transaction persistence. Failure returns HTTP 500. No write-ahead or queue — synchronous write or fail.
+    - JWT public key (startup): Loaded once from PUB_KEY_PATH. Missing key = pod won't start. No runtime rotation.
+
+    Non-critical:
+    - Stackdriver metrics (optional): Disabled if ENABLE_METRICS=false.
+    - Tracing (optional): Disabled if ENABLE_TRACING=false.
+    [S1: LedgerWriterController.java, LedgerWriterApplication.java]
+  failure_modes:
+    - name: Balance-Reader unavailable
+      description: |
+        ResourceAccessException caught, returns HTTP 500. Blocks all local transactions. Cascade: frontend sees 500, customer can't send money. Detectable via transaction_success_rate drop correlated with balance_check_latency spike. [S1: LedgerWriterController.java exception handling]
+      provenance: extracted
+    - name: Database write failure
+      description: |
+        CannotCreateTransactionException caught, returns HTTP 500. Transaction not persisted. Detectable via transaction_success_rate and ledger_write_latency. [S1: LedgerWriterController.java exception handling]
+      provenance: extracted
+    - name: JWT validation failure
+      description: |
+        Invalid or expired token, returns HTTP 401. Single-user impact. Detectable via payment_validation_rate (auth step). [S1: LedgerWriterController.java]
+      provenance: extracted
+    - name: Duplicate transaction
+      description: |
+        Guava cache hit on requestUuid, returns HTTP 400. Correct behavior — but cache is per-pod, not distributed. Pod restart loses cache — duplicates possible on client retry. [S1: LedgerWriterController.java; S4: precondition violation analysis]
+      provenance: extracted
+    - name: Insufficient balance
+      description: |
+        Balance check fails, returns HTTP 400. Expected business logic. BUT: eventual consistency in balance-reader cache means two rapid payments can both pass — overdraft. [S1: LedgerWriterController.java]
+      provenance: inferred
+    - name: Format validation failure
+      description: |
+        Account/routing format invalid, returns HTTP 400. Client error, not system failure. [S1: TransactionValidator.java]
+      provenance: extracted
+  service_pattern: cmdb_aligned
+  process_participations:
+    - process_name: Send Payment
+      step_name: Transaction Acceptance
+      blocking: true
+      description: |
+        Step 2 of the Send Payment flow (initiate → validate → persist → update-balances → confirm). Ledger-writer receives the payment request from the frontend, runs the 6-step validation chain (JWT auth, format checks, sender authentication, business rules, balance verification, deduplication), and persists the validated transaction to the ledger database. [S4: Send Payment flow analysis]
+      downstream_impact: |
+        No transaction persisted → balance-reader never sees it → customer sees stale balance → payment appears lost. The entire downstream payment pipeline (balance updates, confirmation, audit trail) depends on ledger-writer completing its step. [S4: Send Payment flow analysis]
+      provenance: derived
+
+stakeholders:
+  - name: Bank Customers
+    impact_category: customer_experience
+    priority: CRITICAL
+    expectation: "Payments complete successfully, quickly, and without double-charging"
+    expectation_display: "Payments complete successfully and quickly"
+    expectations:
+      - expectation_id: payment_reliability
+        text: "Payments complete successfully, quickly, and without double-charging"
+        display_text: "Payments complete successfully and quickly"
+        provenance: inferred
+    impact_description: |
+      Ledger-writer is the only path for customers to send money. Every payment goes through this service — there is no alternative channel, no degraded mode, no retry queue. When ledger-writer fails, customers experience immediate, total payment inability. The banking relationship depends on payment reliability more than any other single function. When violated: customers unable to send money, payment appears to fail or hang, potential double-charges from deduplication gaps, loss of trust in the platform, account closure. [S1: no fallback in controller; S4: critical path analysis]
+    impact_description_display: "Customers unable to send money — immediate, total payment inability with no fallback."
+    provenance: inferred
+
+  - name: Compliance & Risk Management
+    impact_category: legal_risk
+    priority: CRITICAL
+    expectation: "Every processed transaction produces a complete, auditable record; no unauthorized transactions are accepted"
+    expectation_display: "Complete audit trail for every transaction"
+    expectations:
+      - expectation_id: regulatory_compliance
+        text: "Every processed transaction produces a complete, auditable record; no unauthorized transactions are accepted"
+        display_text: "Complete audit trail for every transaction"
+        provenance: inferred
+    impact_description: |
+      Financial transaction processing is subject to regulatory requirements (BSA/AML, Reg E, SOX controls). Every transaction must produce an immutable audit trail — who sent, who received, what amount, when, and the authorization chain. Gaps in the audit trail are examination findings. The 6-step validation chain exists to prevent unauthorized transactions, but the audit trail requirement goes beyond validation — even correctly rejected transactions must be logged. When violated: regulatory examination findings, BSA/AML reporting gaps, consent order risk, mandatory incident disclosure, potential enforcement action. [S1: validation logic implies regulatory requirement; banking domain knowledge]
+    impact_description_display: "Audit trail gaps create regulatory examination findings and enforcement risk."
+    provenance: inferred
+
+  - name: Finance & Treasury
+    impact_category: financial
+    priority: HIGH
+    expectation: "Ledger balances are accurate — no duplicate entries, no missing transactions, reconciliation closes daily"
+    expectation_display: "Accurate ledger balances, no duplicates"
+    expectations:
+      - expectation_id: financial_integrity
+        text: "Ledger balances are accurate — no duplicate entries, no missing transactions, reconciliation closes daily"
+        display_text: "Accurate ledger balances, no duplicates"
+        provenance: inferred
+    impact_description: |
+      The ledger is the system of record for all account balances. Duplicate transactions inflate balances; missing transactions deflate them. The Guava deduplication cache is per-pod and expires after 1 hour — pod restarts or multi-replica deployments create windows for duplicate writes. Finance reconciles daily; every discrepancy requires manual investigation that delays close. When violated: customer balance errors, overdraft exposure from eventual consistency, daily reconciliation failures, manual correction costs, potential financial restatement. [S1: Guava cache TTL = 1 hour, per-pod; S4: "two rapid payments both pass balance check"]
+    impact_description_display: "Duplicate or missing transactions cause balance errors and reconciliation failures."
+    provenance: inferred
+
+  - name: Payments Operations
+    impact_category: operational
+    priority: HIGH
+    expectation: "Transaction failures are visible and diagnosable within 15 minutes; the system handles volume changes without manual intervention"
+    expectation_display: "Failures visible and diagnosable within 15 min"
+    expectations:
+      - expectation_id: operational_continuity
+        text: "Transaction failures are visible and diagnosable within 15 minutes; the system handles volume changes without manual intervention"
+        display_text: "Failures visible and diagnosable within 15 min"
+        provenance: inferred
+    impact_description: |
+      Payments Operations monitors and responds to payment system health. When ledger-writer degrades, the first question is "what broke and how bad?" The 6-step validation chain produces distinct error messages for each failure type, but there is no composite health signal — operators must correlate individual metrics to determine overall payment system state. The balance-reader dependency is the single largest operational risk: when it degrades, ALL local transactions fail, but the failure surfaces as an HTTP 500 from ledger-writer, not a clear dependency signal. When violated: blind spots in payment health, manual investigation backlog, SLA breaches on incident response time, cascading failures from undetected dependency degradation. [S1: error handling, no composite health; S4: balance-reader cascading failure]
+    impact_description_display: "Blind spots in payment health force manual correlation and delay incident response."
+    provenance: inferred
+
+signals:
+  # --- Business Health signals (Part 2) ---
+  - signal_name: transaction_success_rate
+    display_name: Transaction Success Rate
+    layer: Business Health
+    signal_type: sli_ratio
+    question: Are customer payments completing successfully?
+    reasoning: |
+      APQC Effectiveness dimension. Percentage of customer payment attempts that complete successfully. This is the primary business health signal for Bank Customers — when it degrades, customers cannot send money. Also serves Payments Operations through shared traceability. [S1: controller endpoint; S4: composite health definition "success >= 99%"]
+    provenance: inferred
+    slo_target: 99.5
+    slo_unit: percent
+    slo_rationale: |
+      At ~200 transactions/hour during normal load, 0.5% budget allows ~1 failure/hour. Banking tolerance: occasional failure acceptable if visible and recoverable. Sustained degradation triggers regulatory scrutiny. [S4: baseline analysis]
+    budgeting: occurrences
+    time_window: 30d
+    time_window_type: rolling
+    health_thresholds:
+      warning: 98.0
+      critical: 97.0
+    alerting:
+      warning: 99.0
+      page: 97.0
+      warning_severity: warning
+      page_severity: critical
+    queries:
+      numerator: 'sum(rate(http_server_requests_seconds_count{service="ledgerwriter",uri="/transactions",status="200"}[5m]))'
+      numerator_description: Rate of successful payment transactions (HTTP 200)
+      denominator: 'sum(rate(http_server_requests_seconds_count{service="ledgerwriter",uri="/transactions",method="POST"}[5m]))'
+      denominator_description: Rate of all payment transaction attempts (POST)
+    data_source: Prometheus
+    data_source_note: "Spring Boot Actuator HTTP server metrics via Micrometer"
+    technical_owner: Ledger Team
+    business_description: "Percentage of customer payment attempts that complete successfully"
+    business_description_display: "Payment success rate — are customers' payments going through?"
+    technical_description: |
+      Ratio of HTTP 200 responses from /transactions endpoint to total POST requests. Includes all rejection reasons (auth, validation, balance, duplicate) in the denominator. Excludes health check and readiness probe traffic.
+
+  - signal_name: transaction_processing_duration_p95
+    display_name: Transaction Processing Duration p95
+    layer: Business Health
+    signal_type: sli_threshold
+    question: Is payment processing fast enough for customers?
+    reasoning: |
+      APQC Efficiency dimension. 95th percentile time from payment submission to confirmation. Beyond 2 seconds, uncertainty ("did it go through?") drives duplicate submissions — which stresses the deduplication cache. [S4: composite health "latency < 2000ms"]
+    provenance: inferred
+    slo_target: 2000
+    slo_unit: ms
+    slo_rationale: |
+      Banking payment UX research: customers expect sub-2-second payment confirmation. Beyond 2 seconds, uncertainty drives duplicate submissions — which stresses the deduplication cache. [UX research on payment confirmation latency]
+    budgeting: time_slices
+    time_window: 30d
+    time_window_type: rolling
+    health_thresholds:
+      warning: 1500
+      critical: 2000
+    alerting:
+      warning: 1500
+      page: 3000
+      warning_severity: warning
+      page_severity: critical
+    queries:
+      numerator: 'histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{service="ledgerwriter",uri="/transactions",method="POST"}[5m])) by (le)) * 1000'
+      numerator_description: 95th percentile POST /transactions duration in milliseconds
+      threshold_operator: "<"
+      threshold_value: 2000
+      threshold_unit: ms
+    data_source: Prometheus
+    data_source_note: "Spring Boot Actuator HTTP server duration histogram via Micrometer"
+    technical_owner: Ledger Team
+    business_description: "95th percentile time from payment submission to confirmation"
+    business_description_display: "Payment speed — how long are customers waiting?"
+    technical_description: |
+      p95 of HTTP POST /transactions duration histogram. Includes JWT validation, format validation, balance check (HTTP call to balance-reader), and database write. Long tail from balance-reader latency and database contention.
+
+  - signal_name: payment_volume_capacity_headroom
+    display_name: Payment Volume Capacity Headroom
+    layer: Business Health
+    signal_type: sli_threshold
+    question: Can the payment system absorb volume spikes without degradation?
+    reasoning: |
+      APQC Adaptability dimension. When headroom drops below 20%, the system cannot absorb typical volume spikes (payroll days, month-end, promotional events) without degradation. [Constructed — no existing capacity signal; derived from cross-service spike finding that balance-reader dependency is the bottleneck]
+    provenance: constructed
+    slo_target: 80
+    slo_unit: percent
+    slo_rationale: |
+      20% headroom is the minimum buffer for absorbing volume spikes without SLO degradation. Banking transaction patterns are cyclical — payroll days see 2-3x baseline volume, month-end sees 1.5-2x. Below 20% headroom, any volume spike pushes the system past capacity, causing latency degradation that cascades to success rate. [Capacity planning discipline (Hixson)]
+    budgeting: time_slices
+    time_window: 30d
+    time_window_type: rolling
+    health_thresholds:
+      warning: 70
+      critical: 80
+    alerting:
+      warning: 70
+      page: 85
+      warning_severity: warning
+      page_severity: critical
+    queries:
+      numerator: '(sum(rate(http_server_requests_seconds_count{service="ledgerwriter",uri="/transactions",method="POST"}[5m])) / on() group_left() ledgerwriter_rated_capacity_tps) * 100'
+      numerator_description: Current TPS as percentage of rated capacity
+      threshold_operator: "<"
+      threshold_value: 80
+      threshold_unit: percent
+    data_source: Prometheus
+    data_source_note: "Derived from transaction request rate and load-tested rated capacity"
+    technical_owner: Ledger Team
+    business_description: "How much room the payment system has to absorb transaction volume increases — current TPS as percentage of tested maximum capacity"
+    business_description_display: "Payment capacity headroom — can we handle payroll day?"
+    technical_description: |
+      Ratio of current 5-minute average TPS to the service's rated capacity (determined by load testing). Rated capacity accounts for the full validation chain including the synchronous balance-reader call. When headroom drops below 20%, the system cannot absorb typical volume spikes without degradation.
+
+  - signal_name: transaction_audit_completeness
+    display_name: Transaction Audit Completeness
+    layer: Business Health
+    signal_type: sli_ratio
+    question: Does every transaction produce a complete audit record?
+    reasoning: |
+      APQC Effectiveness dimension for Compliance. Measures completeness of the structured log/database record — not just whether the transaction was processed. Includes rejected transactions — the audit trail must show WHY a transaction was rejected, not just that it was. [S1: transaction validation produces structured responses; banking regulatory domain knowledge]
+    provenance: inferred
+    slo_target: 99.99
+    slo_unit: percent
+    slo_rationale: |
+      Regulatory: zero tolerance for audit gaps in practice, but 99.99% allows for infrastructure-level log loss (network partition, disk full). At 200 txn/hour, 0.01% budget = ~0.5 gaps/day. Any gap triggers investigation. [BSA/AML transaction record requirements, SOX IT general controls]
+    budgeting: occurrences
+    time_window: 30d
+    time_window_type: rolling
+    health_thresholds:
+      warning: 99.95
+      critical: 99.9
+    alerting:
+      warning: 99.95
+      page: 99.9
+      warning_severity: warning
+      page_severity: critical
+    queries:
+      numerator: 'sum(rate(ledgerwriter_audit_records_complete_total{service="ledgerwriter"}[5m]))'
+      numerator_description: Rate of transactions with all required audit fields populated
+      denominator: 'sum(rate(http_server_requests_seconds_count{service="ledgerwriter",uri="/transactions",method="POST"}[5m]))'
+      denominator_description: Rate of all transaction attempts
+    data_source: Prometheus
+    data_source_note: "Custom metric — audit record completeness counter"
+    technical_owner: Ledger Team
+    business_description: "Percentage of processed transactions that produce a complete audit record with all required fields"
+    business_description_display: "Audit completeness — is every transaction fully recorded?"
+    technical_description: |
+      Ratio of transaction log entries with all required audit fields populated to total transaction attempts. Measures completeness of the structured log/database record, not just whether the transaction was processed. Includes rejected transactions — the audit trail must show WHY a transaction was rejected.
+
+  - signal_name: duplicate_prevention_rate
+    display_name: Duplicate Prevention Rate
+    layer: Business Health
+    signal_type: sli_ratio
+    question: Are duplicate payment attempts being caught before ledger write?
+    reasoning: |
+      APQC Effectiveness dimension for Finance. Measures the Guava cache deduplication mechanism. Known limitation: cache is per-pod, not distributed. Pod restart or cross-replica retry is a blind spot — this signal measures cache effectiveness, not absolute deduplication. [S1: Guava cache dedup in LedgerWriterController; S4: dedup gap analysis]
+    provenance: inferred
+    slo_target: 99.9
+    slo_unit: percent
+    slo_rationale: |
+      At scale, even 0.1% duplicate leakage means ~5 duplicate transactions/day requiring manual reversal. Each reversal is a customer-impacting event and a reconciliation break. [Finance & Treasury reconciliation requirement, Guava cache architecture constraints]
+    budgeting: occurrences
+    time_window: 30d
+    time_window_type: rolling
+    health_thresholds:
+      warning: 99.5
+      critical: 99.0
+    alerting:
+      warning: 99.5
+      page: 99.0
+      warning_severity: warning
+      page_severity: critical
+    queries:
+      numerator: 'sum(rate(ledgerwriter_duplicate_rejected_total{service="ledgerwriter"}[5m]))'
+      numerator_description: Rate of correctly rejected duplicate transaction UUIDs
+      denominator: 'sum(rate(ledgerwriter_duplicate_attempts_total{service="ledgerwriter"}[5m]))'
+      denominator_description: Rate of total duplicate attempts (same UUID submitted more than once)
+    data_source: Prometheus
+    data_source_note: "Custom metric — Guava cache deduplication counters"
+    technical_owner: Ledger Team
+    business_description: "Percentage of duplicate payment attempts that are correctly identified and rejected before ledger write"
+    business_description_display: "Duplicate prevention — are repeat payments being caught?"
+    technical_description: |
+      Ratio of correctly rejected duplicate transaction UUIDs to total duplicate attempts (same UUID submitted more than once within the cache TTL). Measures the Guava cache deduplication mechanism. Known limitation: cache is per-pod, not distributed.
+
+  # --- Process signals (Part 3) ---
+  - signal_name: payment_validation_rate
+    display_name: Payment Validation Rate
+    layer: Process
+    signal_type: sli_ratio
+    question: Are payment attempts passing all validation checks before reaching balance check?
+    reasoning: |
+      Golden Signal Errors dimension. Sub-capability: Transaction Validation. Helps explain transaction_success_rate failures — validation failures are a direct cause of payment rejection (auth errors, format errors, business rule violations). [S1: TransactionValidator.java — 6-step chain]
+    provenance: extracted
+    slo_target: 99.5
+    slo_unit: percent
+    slo_rationale: |
+      Validation failures at >0.5% indicate a systemic issue — either auth infrastructure is degrading or client-side validation is broken. Individual client errors are expected; sustained rates are not. [Internal SLO — Ledger Team]
+    budgeting: occurrences
+    time_window: 30d
+    time_window_type: rolling
+    health_thresholds:
+      warning: 98.0
+      critical: 97.0
+    alerting:
+      warning: 99.0
+      page: 97.0
+      warning_severity: warning
+      page_severity: critical
+    queries:
+      numerator: 'sum(rate(ledgerwriter_validation_passed_total{service="ledgerwriter"}[5m]))'
+      numerator_description: Rate of transactions passing all 6 validation steps
+      denominator: 'sum(rate(http_server_requests_seconds_count{service="ledgerwriter",uri="/transactions",method="POST"}[5m]))'
+      denominator_description: Rate of all transaction attempts
+    data_source: Prometheus
+    data_source_note: "Custom metric — validation chain pass counter"
+    technical_owner: Ledger Team
+    business_description: "Percentage of payment attempts that pass all validation checks (auth, format, business rules) before reaching the balance check step"
+    business_description_display: "Validation pass rate — are payments passing pre-checks?"
+    technical_description: |
+      Ratio of transactions that pass the 6-step validation chain (steps 1-6) to total transaction attempts. Excludes balance check (step 7) — a transaction that passes validation but fails balance check is a validation success. Measures the gate, not the outcome.
+
+  - signal_name: balance_check_latency_p95
+    display_name: Balance Check Latency p95
+    layer: Process
+    signal_type: sli_threshold
+    question: Is the balance verification step fast enough?
+    reasoning: |
+      Golden Signal Latency dimension. Sub-capability: Balance Verification. Helps explain transaction_processing_duration_p95 — balance check is the synchronous HTTP dependency whose latency directly adds to total transaction time. Also helps explain transaction_success_rate when balance-reader is unavailable (HTTP 500 from ResourceAccessException). [S1: LedgerWriterController.java — balance check HTTP call]
+    provenance: extracted
+    slo_target: 500
+    slo_unit: ms
+    slo_rationale: |
+      Derived from transaction_processing_duration_p95 budget allocation. The balance check must complete in <500ms to leave room for validation (~100ms) and database write (~200ms) within the 2000ms total budget. [Internal SLO — Ledger Team]
+    budgeting: time_slices
+    time_window: 30d
+    time_window_type: rolling
+    health_thresholds:
+      warning: 300
+      critical: 500
+    alerting:
+      warning: 300
+      page: 1000
+      warning_severity: warning
+      page_severity: critical
+    queries:
+      numerator: 'histogram_quantile(0.95, sum(rate(http_client_requests_seconds_bucket{service="ledgerwriter",uri="/balances/{accountNum}"}[5m])) by (le)) * 1000'
+      numerator_description: 95th percentile balance check HTTP call duration in milliseconds
+      threshold_operator: "<"
+      threshold_value: 500
+      threshold_unit: ms
+    data_source: Prometheus
+    data_source_note: "Spring Boot Actuator HTTP client metrics via Micrometer"
+    technical_owner: Ledger Team
+    business_description: "95th percentile time to verify the sender has sufficient balance for the transaction"
+    business_description_display: "Balance check speed — is the dependency fast enough?"
+    technical_description: |
+      p95 of HTTP GET to balance-reader /balances/{account_num} endpoint. Only fires for internal transactions (fromRoutingNum == LOCAL_ROUTING_NUM). External transactions skip this step. Timeout behavior: relies on RestTemplate defaults — no explicit timeout configured.
+
+  - signal_name: ledger_write_latency_p95
+    display_name: Ledger Write Latency p95
+    layer: Process
+    signal_type: sli_threshold
+    question: Is the database write step fast enough?
+    reasoning: |
+      Golden Signal Latency dimension. Sub-capability: Ledger Persistence. Helps explain transaction_processing_duration_p95 — database write time is a component of total transaction time. Helps explain transaction_success_rate when database is degraded (CannotCreateTransactionException). [S1: transactionRepository.save() in controller]
+    provenance: extracted
+    slo_target: 200
+    slo_unit: ms
+    slo_rationale: |
+      Derived from transaction_processing_duration_p95 budget allocation. At 200ms budget for the write step, sustained increases indicate HikariCP pool contention, slow queries, or PostgreSQL degradation. [Internal SLO — Ledger Team]
+    budgeting: time_slices
+    time_window: 30d
+    time_window_type: rolling
+    health_thresholds:
+      warning: 100
+      critical: 200
+    alerting:
+      warning: 100
+      page: 500
+      warning_severity: warning
+      page_severity: critical
+    queries:
+      numerator: 'histogram_quantile(0.95, sum(rate(spring_data_repository_invocations_seconds_bucket{service="ledgerwriter",method="save"}[5m])) by (le)) * 1000'
+      numerator_description: 95th percentile JPA save duration in milliseconds
+      threshold_operator: "<"
+      threshold_value: 200
+      threshold_unit: ms
+    data_source: Prometheus
+    data_source_note: "Spring Data JPA repository invocation metrics via Micrometer"
+    technical_owner: Ledger Team
+    business_description: "95th percentile time to write a validated transaction to the ledger database"
+    business_description_display: "Database write speed — is persistence keeping up?"
+    technical_description: |
+      p95 of JPA transactionRepository.save() duration. Measures the PostgreSQL write path including connection acquisition from the HikariCP pool, Hibernate entity persistence, and transaction commit.
+
+  - signal_name: transaction_request_rate
+    display_name: Transaction Request Rate
+    layer: Process
+    signal_type: sli_threshold
+    question: What is the current volume of demand on the payment system?
+    reasoning: |
+      Golden Signal Traffic dimension. Service-wide. Helps explain payment_volume_capacity_headroom — request rate is the numerator of the capacity ratio. Traffic spikes that exceed capacity headroom cause latency and error rate degradation. [S1: single endpoint]
+    provenance: extracted
+    slo_target: 0
+    slo_unit: "requests/second"
+    slo_rationale: |
+      Informational — no target on traffic volume. Used as input to capacity headroom calculation. Monitored for trend analysis and capacity planning. [Capacity planning — monitoring signal, not SLO-bearing]
+    budgeting: time_slices
+    time_window: 5m
+    time_window_type: rolling
+    health_thresholds:
+      warning: 0
+      critical: 0
+    alerting:
+      warning: 0
+      page: 0
+      warning_severity: warning
+      page_severity: critical
+    queries:
+      numerator: 'sum(rate(http_server_requests_seconds_count{service="ledgerwriter",uri="/transactions",method="POST"}[5m]))'
+      numerator_description: Payment transaction requests per second (5-minute average)
+      threshold_operator: ">"
+      threshold_value: 0
+      threshold_unit: "requests/second"
+    data_source: Prometheus
+    data_source_note: "Spring Boot Actuator HTTP server metrics via Micrometer"
+    technical_owner: Ledger Team
+    business_description: "Incoming payment transaction requests per second — the volume of demand on the payment system"
+    business_description_display: "Payment volume — how many transactions are coming in?"
+    technical_description: |
+      Rate of HTTP POST requests to /transactions endpoint per second. Includes all outcomes (success, validation failure, balance failure, error). Measures demand, not throughput.
+
+  # --- System signals (Part 4) ---
+  - signal_name: ledger_writer_availability
+    display_name: Ledger-Writer Availability
+    layer: System
+    signal_type: sli_ratio
+    question: Is the ledger-writer service accepting and processing requests?
+    reasoning: |
+      USE Errors dimension. Measures infrastructure availability: can the service accept connections? Distinct from transaction_success_rate which measures business outcomes. [S3: readiness probe config]
+    provenance: extracted
+    slo_target: 99.9
+    slo_unit: percent
+    slo_rationale: |
+      Infrastructure availability for the critical-path payment service. 99.9% allows approximately 43 minutes of downtime per month. Infrastructure failures affect ALL payment operations. [Internal SLO — Bank of Anthos Platform Engineering]
+    budgeting: time_slices
+    time_window: 30d
+    time_window_type: rolling
+    health_thresholds:
+      warning: 99.5
+      critical: 99.0
+    alerting:
+      warning: 99.5
+      page: 99.0
+      warning_severity: warning
+      page_severity: critical
+    queries:
+      numerator: 'sum(rate(up{service="ledgerwriter",job="kubernetes-pods"}[5m]))'
+      numerator_description: Rate of successful readiness probe responses
+      denominator: 'count(up{service="ledgerwriter",job="kubernetes-pods"})'
+      denominator_description: Total readiness probe checks
+    data_source: Prometheus
+    data_source_note: "Kubernetes readiness probe success rate"
+    technical_owner: Platform Team
+    business_description: "Percentage of time the ledger-writer service is accepting and processing requests"
+    business_description_display: "Service availability — is ledger-writer up?"
+    technical_description: |
+      Derived from Kubernetes readiness probe success rate (GET /ready). Measures infrastructure availability: can the service accept connections? Distinct from transaction_success_rate which measures business outcomes.
+
+  - signal_name: ledger_writer_cpu_utilization
+    display_name: Ledger-Writer CPU Utilization
+    layer: System
+    signal_type: sli_threshold
+    question: Is the service working within its resource budget?
+    reasoning: |
+      USE Utilization dimension. CPU usage relative to allocated limits. JVM workload: JWT verification (crypto), JSON serialization, HTTP client calls, JPA entity mapping. JVM_OPTS constrain heap to 256m-512m. [S3: resource limits CPU 500m]
+    provenance: extracted
+    slo_target: 70
+    slo_unit: percent
+    slo_rationale: |
+      70% CPU utilization is the standard capacity planning threshold. Beyond 70%, the service cannot absorb traffic spikes without risking latency degradation from CPU contention. [Internal SLO — Platform Engineering capacity planning standard]
+    budgeting: time_slices
+    time_window: 30d
+    time_window_type: rolling
+    health_thresholds:
+      warning: 60
+      critical: 70
+    alerting:
+      warning: 60
+      page: 80
+      warning_severity: warning
+      page_severity: critical
+    queries:
+      numerator: '(sum(rate(container_cpu_usage_seconds_total{container="ledgerwriter"}[5m])) / sum(kube_pod_container_resource_limits{container="ledgerwriter",resource="cpu"})) * 100'
+      numerator_description: CPU usage as percentage of allocated limit (500m = 0.5 cores)
+      threshold_operator: "<"
+      threshold_value: 70
+      threshold_unit: percent
+    data_source: Prometheus
+    data_source_note: "cAdvisor container metrics and kube-state-metrics resource limits"
+    technical_owner: Platform Team
+    business_description: "CPU usage relative to allocated limits — measures how hard the service is working relative to its resource budget"
+    business_description_display: "CPU utilization — how hard is the service working?"
+    technical_description: |
+      Ratio of actual CPU seconds consumed to CPU limit (500m = 0.5 cores). JVM workload: JWT verification (crypto), JSON serialization, HTTP client calls, JPA entity mapping. JVM_OPTS constrain heap to 256m-512m.
+
+  - signal_name: ledger_db_connection_pool_saturation
+    display_name: Ledger-DB Connection Pool Saturation
+    layer: System
+    signal_type: sli_threshold
+    question: Is the database connection pool approaching capacity?
+    reasoning: |
+      USE Saturation dimension. Connection pool saturation is the leading indicator of database-side bottleneck before transaction failures begin. When saturated, new transactions queue waiting for a connection, causing latency spikes and timeouts. [S1: Spring Data JPA + HikariCP default; S3: PostgreSQL datasource config]
+    provenance: extracted
+    slo_target: 80
+    slo_unit: percent
+    slo_rationale: |
+      80% pool saturation is the standard threshold. Default Spring Boot HikariCP pool: 10 connections max. Each transaction holds a connection for the duration of the JPA save. Beyond 80%, connection wait time becomes a significant contributor to transaction latency. [HikariCP operational guidance]
+    budgeting: time_slices
+    time_window: 5m
+    time_window_type: rolling
+    health_thresholds:
+      warning: 60
+      critical: 80
+    alerting:
+      warning: 60
+      page: 90
+      warning_severity: warning
+      page_severity: critical
+    queries:
+      numerator: '(sum(hikaricp_connections_active{service="ledgerwriter"}) / sum(hikaricp_connections_max{service="ledgerwriter"})) * 100'
+      numerator_description: Active HikariCP connections as percentage of maximum pool size
+      threshold_operator: "<"
+      threshold_value: 80
+      threshold_unit: percent
+    data_source: Prometheus
+    data_source_note: "HikariCP connection pool metrics via Micrometer"
+    technical_owner: Platform Team
+    business_description: "How full the database connection pool is — when saturated, new transactions queue waiting for a connection"
+    business_description_display: "DB connection pool — is it filling up?"
+    technical_description: |
+      Ratio of active HikariCP connections to maximum pool size. Default Spring Boot HikariCP pool: 10 connections max. Each transaction holds a connection for the duration of the JPA save. Connection pool saturation is the leading indicator of database-side bottleneck before transaction failures begin.
+
+causal_model: |
+  transaction_success_rate degrades (Business Health)
+    → Is it payment_validation_rate? (Process — validation step failing: auth, format, business rules)
+      → JWT validation infrastructure: is the public key mounted? Is it expired?
+      → Client-side: is the frontend sending malformed requests?
+    → Is it balance_check_latency_p95? (Process — balance-reader dependency degraded or unavailable)
+      → Balance-reader unavailable: ResourceAccessException → HTTP 500 for ALL local transactions
+      → Balance-reader slow: latency cascades to transaction_processing_duration_p95
+    → Is it ledger_write_latency_p95? (Process — database write degraded)
+      → ledger_db_connection_pool_saturation? (System — HikariCP pool exhausted)
+      → PostgreSQL degradation: disk I/O, replication lag, lock contention
+    → Is it ledger_writer_availability? (System — service itself is down)
+      → Pod crash: OOMKilled, readiness probe failure, JVM heap exhaustion
+    → Is it none of the above? (expected business rejections: insufficient balance, duplicate, format error)
+
+  transaction_processing_duration_p95 degrades (Business Health)
+    → Is it balance_check_latency_p95? (Process — synchronous HTTP dependency is the largest latency contributor)
+    → Is it ledger_write_latency_p95? (Process — database contention)
+      → ledger_db_connection_pool_saturation? (System — connection wait time)
+    → Is it ledger_writer_cpu_utilization? (System — CPU contention from crypto/serialization)
+    → Is it transaction_request_rate spike? (Process — volume exceeding capacity)
+      → payment_volume_capacity_headroom? (Business Health — approaching rated capacity)
+
+  The diagnostic path: Business Health tells you "customers can't pay" or "payments are slow." Process signals tell you which step is failing (validation, balance check, or write). System signals tell you why (availability, CPU, connection pool). For this service, the balance-reader dependency is the single largest risk — its failures cascade to both success rate and latency.
+
+# --- v2 needs decomposition ---
+
+needs:
+  # Chain 1 needs — Bank Customers / Payment Reliability
+  - need_name: payment_effectiveness
+    display_name: "Are customer payments completing successfully?"
+    process_context:
+      process_name: Send Payment
+      step_name: Transaction Acceptance
+    scenario:
+      stimulus: "Customer submits a payment transaction via the frontend"
+      environment: "Normal operating conditions, all dependencies healthy"
+      response: "Ledger-writer validates, checks balance, and persists the transaction"
+      response_measure: "Transaction success rate >= 99.5% over 30d rolling window"
+      provenance: derived
+    preconditions:
+      - description: "Balance-Reader service is available and responding within latency budget"
+        current_state: met
+        cross_need_risk: null
+        provenance: derived
+      - description: "Ledger-DB is available and accepting writes"
+        current_state: met
+        cross_need_risk: null
+        provenance: derived
+      - description: "JWT public key is mounted and valid for authentication"
+        current_state: met
+        cross_need_risk: null
+        provenance: extracted
+    composite_health: null
+    impacts:
+      - category: customer_experience
+        unit: customers/hour
+        measure: "~12 customers affected per hour at baseline volume during degradation"
+        causal_chain: "transaction_success_rate degrades → customers submit payments that return HTTP 500 → immediate payment inability → trust erosion → account closure risk"
+        provenance: inferred
+      - category: financial
+        unit: "$/hour"
+        measure: "~$2,400/hour at baseline; cumulative $9,600+ by hour 4"
+        causal_chain: "Failed transactions → revenue not captured → Finance escalation at hour 4 → material financial impact requiring disclosure at hour 24"
+        provenance: inferred
+    provenance: derived
+
+  - need_name: payment_efficiency
+    display_name: "Are payments completing fast enough for customers?"
+    process_context:
+      process_name: Send Payment
+      step_name: Transaction Acceptance
+    scenario:
+      stimulus: "Customer submits a payment transaction via the frontend"
+      environment: "Normal operating conditions, all dependencies healthy"
+      response: "Ledger-writer completes the full validation-check-persist chain"
+      response_measure: "95th percentile transaction processing duration < 2000ms"
+      provenance: derived
+    preconditions:
+      - description: "Balance-Reader responds within its 500ms latency budget"
+        current_state: met
+        cross_need_risk: "payment_effectiveness precondition (Balance-Reader availability) — if Balance-Reader is slow rather than down, it degrades efficiency without failing effectiveness"
+        provenance: derived
+      - description: "Ledger-DB connection pool is not saturated (<80%)"
+        current_state: met
+        cross_need_risk: null
+        provenance: derived
+    composite_health: null
+    impacts:
+      - category: customer_experience
+        unit: null
+        measure: "Beyond 2 seconds, uncertainty drives duplicate submissions — stressing deduplication cache and increasing duplicate_prevention_rate pressure"
+        causal_chain: "Slow transactions → customer uncertainty → duplicate submissions → Guava cache stress → potential duplicate writes → reconciliation breaks"
+        provenance: inferred
+    provenance: derived
+
+  - need_name: payment_capacity
+    display_name: "Can the payment system absorb volume spikes without degradation?"
+    process_context:
+      process_name: Send Payment
+      step_name: Transaction Acceptance
+    scenario:
+      stimulus: "Transaction volume increases 2-3x during payroll day or month-end"
+      environment: "Cyclical peak load — payroll days, month-end settlement, promotional events"
+      response: "Ledger-writer processes all transactions within SLO targets for success rate and latency"
+      response_measure: "Capacity headroom stays below 80% (i.e., at least 20% buffer remains)"
+      provenance: derived
+    preconditions:
+      - description: "Rated capacity has been established through load testing"
+        current_state: unknown
+        cross_need_risk: null
+        provenance: inferred
+      - description: "Balance-Reader can scale to match ledger-writer throughput"
+        current_state: unknown
+        cross_need_risk: "payment_effectiveness — if balance-reader is the bottleneck, capacity headroom measurement understates risk"
+        provenance: inferred
+    composite_health: null
+    impacts:
+      - category: operational
+        unit: null
+        measure: "Volume spike exceeding capacity → cascading latency degradation → success rate drop → all Chain 1 impacts activate simultaneously"
+        causal_chain: "Headroom exhausted → request queuing → latency exceeds 2s → duplicate submissions → success rate drops → customer impact + financial impact compound"
+        provenance: inferred
+    provenance: derived
+
+  # Chain 2 need — Compliance / Regulatory Compliance
+  - need_name: audit_trail_integrity
+    display_name: "Does every transaction produce a complete, auditable record?"
+    process_context:
+      process_name: Send Payment
+      step_name: Transaction Acceptance
+    scenario:
+      stimulus: "Any transaction attempt — accepted or rejected — passes through ledger-writer"
+      environment: "All operating conditions including degraded modes"
+      response: "Ledger-writer produces a complete audit record with sender, receiver, amount, timestamp, authorization chain, and disposition"
+      response_measure: "Audit completeness >= 99.99% over 30d rolling window"
+      provenance: derived
+    preconditions:
+      - description: "Logging infrastructure is available and accepting writes"
+        current_state: met
+        cross_need_risk: null
+        provenance: inferred
+      - description: "Transaction processing produces structured output even on rejection paths"
+        current_state: met
+        cross_need_risk: null
+        provenance: extracted
+    composite_health: null
+    impacts:
+      - category: legal_risk
+        unit: hours
+        measure: "Each hour of audit gap accumulates regulatory exposure; mandatory reporting at defined thresholds"
+        causal_chain: "Audit completeness drops → compliance notification at hour 1 → compliance officer briefing at hour 4 → regulatory reporting obligation at hour 24"
+        provenance: inferred
+    provenance: derived
+
+  # Chain 3 need — Finance / Financial Integrity
+  - need_name: duplicate_prevention
+    display_name: "Are duplicate payment attempts being caught before they reach the ledger?"
+    process_context:
+      process_name: Send Payment
+      step_name: Transaction Acceptance
+    scenario:
+      stimulus: "Client retries a payment with the same requestUuid (e.g., after timeout or network error)"
+      environment: "Normal operations — Guava dedup cache active, pod stable"
+      response: "Ledger-writer identifies the duplicate UUID and rejects with HTTP 400"
+      response_measure: "Duplicate prevention rate >= 99.9% over 30d rolling window"
+      provenance: derived
+    preconditions:
+      - description: "Guava dedup cache is warm — pod has not recently restarted"
+        current_state: met
+        cross_need_risk: "payment_efficiency — slow transactions drive duplicate submissions, increasing load on the per-pod cache"
+        provenance: extracted
+      - description: "Single-replica deployment or sticky sessions — cache is per-pod, not distributed"
+        current_state: violated
+        cross_need_risk: null
+        provenance: extracted
+    composite_health: null
+    impacts:
+      - category: financial
+        unit: "duplicates/day"
+        measure: "~5 duplicate transactions/day at 0.1% leakage — each requires manual reversal"
+        causal_chain: "Duplicate leakage → inflated balances → daily reconciliation failure → manual investigation → delayed close → potential financial restatement"
+        provenance: inferred
+    provenance: derived
+
+  # Chain 4 need — Payments Operations / Operational Continuity
+  - need_name: operational_visibility
+    display_name: "Are transaction failures visible and diagnosable within 15 minutes?"
+    process_context:
+      process_name: Send Payment
+      step_name: Transaction Acceptance
+    scenario:
+      stimulus: "Transaction success rate drops or latency spikes"
+      environment: "Degraded operations — one or more dependencies impaired"
+      response: "Operations can identify the failing component and severity within the diagnostic signal set"
+      response_measure: "Root cause identifiable within 15 minutes using available signals — no composite health signal gap"
+      provenance: derived
+    preconditions:
+      - description: "Process-layer diagnostic signals (validation rate, balance check latency, write latency) are instrumented and reporting"
+        current_state: met
+        cross_need_risk: null
+        provenance: inferred
+      - description: "System-layer signals (availability, CPU, connection pool) are instrumented and reporting"
+        current_state: met
+        cross_need_risk: null
+        provenance: inferred
+    composite_health: null
+    impacts:
+      - category: operational
+        unit: investigations/hour
+        measure: "~6 investigations/hour at baseline failure rate; exceeds single-operator capacity at hour 4 (24+); requires additional staffing at hour 24 (144+)"
+        causal_chain: "Diagnostic blind spots → manual metric correlation → investigation backlog → SLA breach on incident response → cascading failures from undetected dependency degradation"
+        provenance: inferred
+    provenance: derived
+
+need_signals:
+  # payment_effectiveness — outcome signals
+  - need_ref: payment_effectiveness
+    signal_ref: transaction_success_rate
+    role: outcome
+    threshold_override: null
+    rationale: "Primary outcome metric — directly measures whether payments are completing. Degradation means customers cannot send money."
+    provenance: derived
+  # payment_effectiveness — diagnostic signals
+  - need_ref: payment_effectiveness
+    signal_ref: payment_validation_rate
+    role: diagnostic
+    threshold_override: null
+    rationale: "Explains transaction_success_rate failures — validation failures (auth, format, business rules) are a direct cause of payment rejection."
+    provenance: derived
+  - need_ref: payment_effectiveness
+    signal_ref: balance_check_latency_p95
+    role: diagnostic
+    threshold_override: null
+    rationale: "Balance-reader unavailability causes HTTP 500 for all local transactions — a primary failure mode for transaction_success_rate."
+    provenance: derived
+  - need_ref: payment_effectiveness
+    signal_ref: ledger_write_latency_p95
+    role: diagnostic
+    threshold_override: null
+    rationale: "Database write failures (CannotCreateTransactionException) are a direct cause of transaction_success_rate degradation."
+    provenance: derived
+  - need_ref: payment_effectiveness
+    signal_ref: ledger_writer_availability
+    role: diagnostic
+    threshold_override: null
+    rationale: "Infrastructure unavailability blocks all transactions — the most severe failure mode."
+    provenance: derived
+
+  # payment_efficiency — outcome signals
+  - need_ref: payment_efficiency
+    signal_ref: transaction_processing_duration_p95
+    role: outcome
+    threshold_override: null
+    rationale: "Primary outcome metric — directly measures whether payments are fast enough. Beyond 2s, customers submit duplicates."
+    provenance: derived
+  # payment_efficiency — diagnostic signals
+  - need_ref: payment_efficiency
+    signal_ref: balance_check_latency_p95
+    role: diagnostic
+    threshold_override: null
+    rationale: "Balance check is the synchronous HTTP dependency — its latency directly adds to total transaction time. Largest single contributor to p95."
+    provenance: derived
+  - need_ref: payment_efficiency
+    signal_ref: ledger_write_latency_p95
+    role: diagnostic
+    threshold_override: null
+    rationale: "Database write time is a component of total transaction time. Connection pool contention drives write latency."
+    provenance: derived
+  - need_ref: payment_efficiency
+    signal_ref: ledger_db_connection_pool_saturation
+    role: diagnostic
+    threshold_override: null
+    rationale: "Connection pool saturation is a leading indicator — when the pool fills, new transactions queue for connections, spiking write latency."
+    provenance: derived
+  - need_ref: payment_efficiency
+    signal_ref: ledger_writer_cpu_utilization
+    role: diagnostic
+    threshold_override: null
+    rationale: "CPU contention from crypto (JWT), serialization, and HTTP calls contributes to overall transaction latency."
+    provenance: derived
+
+  # payment_capacity — outcome signals
+  - need_ref: payment_capacity
+    signal_ref: payment_volume_capacity_headroom
+    role: outcome
+    threshold_override: null
+    rationale: "Primary outcome metric — directly measures remaining capacity buffer. Below 20% headroom, volume spikes cause SLO degradation."
+    provenance: derived
+  # payment_capacity — diagnostic signals
+  - need_ref: payment_capacity
+    signal_ref: transaction_request_rate
+    role: diagnostic
+    threshold_override: null
+    rationale: "Request rate is the numerator of the capacity ratio. Traffic spikes that exceed headroom cause latency and error rate degradation."
+    provenance: derived
+  - need_ref: payment_capacity
+    signal_ref: ledger_writer_cpu_utilization
+    role: diagnostic
+    threshold_override: null
+    rationale: "CPU utilization indicates whether compute resources are the bottleneck during volume spikes."
+    provenance: derived
+  - need_ref: payment_capacity
+    signal_ref: ledger_db_connection_pool_saturation
+    role: diagnostic
+    threshold_override: null
+    rationale: "Connection pool saturation indicates whether database connections are the bottleneck during volume spikes."
+    provenance: derived
+
+  # audit_trail_integrity — outcome signals
+  - need_ref: audit_trail_integrity
+    signal_ref: transaction_audit_completeness
+    role: outcome
+    threshold_override: null
+    rationale: "Primary outcome metric — directly measures whether every transaction produces a complete audit record with all required fields."
+    provenance: derived
+
+  # duplicate_prevention — outcome signals
+  - need_ref: duplicate_prevention
+    signal_ref: duplicate_prevention_rate
+    role: outcome
+    threshold_override: null
+    rationale: "Primary outcome metric — directly measures whether duplicate payment attempts are caught by the Guava dedup cache."
+    provenance: derived
+
+  # operational_visibility — diagnostic signals (no outcome signals — served by Chain 1 outcomes)
+  - need_ref: operational_visibility
+    signal_ref: transaction_success_rate
+    role: diagnostic
+    threshold_override: null
+    rationale: "Operations uses transaction_success_rate as the primary alerting signal — degradation triggers investigation. Diagnostic role because this need is about visibility, not payment success itself."
+    provenance: derived
+  - need_ref: operational_visibility
+    signal_ref: payment_volume_capacity_headroom
+    role: diagnostic
+    threshold_override: null
+    rationale: "Capacity planning is an operational concern — Operations uses headroom to anticipate scaling needs before degradation occurs."
+    provenance: derived
+  - need_ref: operational_visibility
+    signal_ref: payment_validation_rate
+    role: diagnostic
+    threshold_override: null
+    rationale: "Validation rate isolates auth/format failures from dependency failures — critical for root cause diagnosis within 15 minutes."
+    provenance: derived
+  - need_ref: operational_visibility
+    signal_ref: balance_check_latency_p95
+    role: diagnostic
+    threshold_override: null
+    rationale: "Balance-reader is the single largest operational risk — its latency/availability is the first diagnostic check when transactions fail."
+    provenance: derived
+  - need_ref: operational_visibility
+    signal_ref: ledger_write_latency_p95
+    role: diagnostic
+    threshold_override: null
+    rationale: "Write latency spikes indicate database-side issues — second diagnostic check after balance-reader."
+    provenance: derived
+  - need_ref: operational_visibility
+    signal_ref: ledger_writer_availability
+    role: diagnostic
+    threshold_override: null
+    rationale: "Infrastructure availability is the baseline check — is the service even running?"
+    provenance: derived
+
+need_stakeholders:
+  - need_ref: payment_effectiveness
+    stakeholder_ref: Bank Customers
+    reason: "Customers depend on payments completing — ledger-writer failure means they cannot send money at all"
+    provenance: derived
+  - need_ref: payment_effectiveness
+    stakeholder_ref: Payments Operations
+    reason: "Operations responds to payment failures — transaction_success_rate is their primary alerting signal"
+    provenance: derived
+  - need_ref: payment_efficiency
+    stakeholder_ref: Bank Customers
+    reason: "Customers expect sub-2-second payment confirmation — slow payments drive duplicate submissions and erode trust"
+    provenance: derived
+  - need_ref: payment_capacity
+    stakeholder_ref: Bank Customers
+    reason: "Customers transact during peak periods (payroll day, month-end) — capacity exhaustion degrades their experience"
+    provenance: derived
+  - need_ref: payment_capacity
+    stakeholder_ref: Payments Operations
+    reason: "Operations owns capacity planning — headroom monitoring enables proactive scaling before customer impact"
+    provenance: derived
+  - need_ref: audit_trail_integrity
+    stakeholder_ref: Compliance & Risk Management
+    reason: "Regulatory requirement — every transaction must produce a complete, immutable audit record. Gaps are examination findings."
+    provenance: derived
+  - need_ref: duplicate_prevention
+    stakeholder_ref: Finance & Treasury
+    reason: "Duplicate transactions inflate ledger balances, break daily reconciliation, and require manual reversal — each is a financial integrity event"
+    provenance: derived
+  - need_ref: duplicate_prevention
+    stakeholder_ref: Bank Customers
+    reason: "Duplicate charges are a direct customer harm — double-charged payments erode trust and require manual resolution"
+    provenance: derived
+  - need_ref: operational_visibility
+    stakeholder_ref: Payments Operations
+    reason: "Operations must diagnose failures within 15 minutes — signal coverage across the diagnostic chain is their primary tool"
+    provenance: derived
+
+need_expectations:
+  - need_ref: payment_effectiveness
+    expectation_ref: payment_reliability
+    decomposition_rationale: "Payment reliability decomposes into effectiveness (are they completing?), efficiency (fast enough?), and capacity (can handle spikes?). This need covers the effectiveness dimension — APQC Effectiveness via transaction_success_rate."
+    provenance: derived
+  - need_ref: payment_efficiency
+    expectation_ref: payment_reliability
+    decomposition_rationale: "Payment reliability decomposes into effectiveness, efficiency, and capacity. This need covers the efficiency dimension — APQC Efficiency via transaction_processing_duration_p95."
+    provenance: derived
+  - need_ref: payment_capacity
+    expectation_ref: payment_reliability
+    decomposition_rationale: "Payment reliability decomposes into effectiveness, efficiency, and capacity. This need covers the adaptability dimension — APQC Adaptability via payment_volume_capacity_headroom."
+    provenance: derived
+  - need_ref: audit_trail_integrity
+    expectation_ref: regulatory_compliance
+    decomposition_rationale: "Regulatory compliance expectation produces a single need — audit trail integrity. The expectation text ('complete, auditable record') maps directly to the transaction_audit_completeness signal."
+    provenance: derived
+  - need_ref: duplicate_prevention
+    expectation_ref: financial_integrity
+    decomposition_rationale: "Financial integrity expectation ('no duplicate entries, no missing transactions') decomposes into duplicate prevention. The Guava cache dedup mechanism is the implementation; the need is the business requirement."
+    provenance: derived
+  - need_ref: operational_visibility
+    expectation_ref: operational_continuity
+    decomposition_rationale: "Operational continuity expectation ('failures visible and diagnosable within 15 minutes') produces an operational visibility need. No new BH signals — served by Chain 1 signals through shared traceability."
+    provenance: derived
+
+excluded_expectations: []
+
+# --- DEPRECATED fields (backward compatibility) ---
+
+impacts:
+  - signal_name: customers_affected
+    display_name: Customers Affected
+    impact_category: customer_experience
+    impact_unit: customers/hour
+    business_description: |
+      Count of unique customers experiencing payment failures per hour. Derived from transaction failure rate and unique sender accounts in failed transactions. [S1: transaction volume; S4: baseline analysis]
+    business_description_display: "Customers per hour who tried to pay and couldn't."
+    reasoning: |
+      Direct customer impact signal. Maps to Bank Customers (customer_experience). Hour 1: ~12 customers affected at baseline volume. Hour 4: cumulative impact triggers exec notification. Hour 24: customer complaint volume triggers regulatory attention.
+    provenance: inferred
+
+  - signal_name: revenue_at_risk
+    display_name: Revenue at Risk
+    impact_category: financial
+    impact_unit: "$/hour"
+    business_description: |
+      Estimated dollar value of failed payment transactions per hour. Based on average transaction value and failure rate. Includes both direct loss (failed payments) and indirect cost (manual reconciliation, customer compensation). [Derived from transaction volume x average value x failure rate]
+    business_description_display: "Estimated dollars lost per hour from failed payments."
+    reasoning: |
+      Financial impact signal. Maps to Bank Customers (customer_experience) and Finance & Treasury (financial). Hour 1: ~$2,400/hour at baseline. Hour 4: cumulative $9,600+ triggers Finance escalation. Hour 24: material financial impact requiring disclosure.
+    provenance: constructed
+
+  - signal_name: regulatory_exposure_hours
+    display_name: Regulatory Exposure Hours
+    impact_category: legal_risk
+    impact_unit: hours
+    business_description: |
+      Cumulative hours where transaction audit completeness is below regulatory threshold. Each hour of gap accumulates exposure — regulators measure duration of non-compliance, not just occurrence. Triggers mandatory incident reporting at defined thresholds. [Banking regulatory domain knowledge]
+    business_description_display: "Cumulative hours of audit non-compliance — duration-based regulatory exposure."
+    reasoning: |
+      Regulatory impact signal. Maps to Compliance & Risk Management (legal_risk). Hour 1: internal compliance notification. Hour 4: mandatory compliance officer briefing. Hour 24: regulatory reporting obligation triggered.
+    provenance: constructed
+
+  - signal_name: manual_investigation_backlog
+    display_name: Manual Investigation Backlog
+    impact_category: operational
+    impact_unit: investigations/hour
+    business_description: |
+      Rate of payment failures requiring manual investigation by operations staff. Each failed transaction without clear diagnostic context generates an investigation ticket. At sustained rates, backlog exceeds team capacity and response SLAs breach. [S1: error handling produces diagnostic context; operational staffing model]
+    business_description_display: "Investigation tickets per hour from payment failures."
+    reasoning: |
+      Operational impact signal. Maps to Payments Operations (operational). Hour 1: ~6 investigations queued (manageable). Hour 4: 24+ investigations — exceeds single-operator capacity. Hour 24: 144+ investigations — requires additional staffing.
+    provenance: inferred
+
+traceability:
+  - stakeholder: Bank Customers
+    signal: Transaction Success Rate
+    relationship: verifies
+  - stakeholder: Bank Customers
+    signal: Transaction Processing Duration p95
+    relationship: verifies
+  - stakeholder: Bank Customers
+    signal: Payment Volume Capacity Headroom
+    relationship: verifies
+  - stakeholder: Bank Customers
+    signal: Customers Affected
+    relationship: quantifies
+  - stakeholder: Bank Customers
+    signal: Revenue at Risk
+    relationship: quantifies
+  - stakeholder: Compliance & Risk Management
+    signal: Transaction Audit Completeness
+    relationship: verifies
+  - stakeholder: Compliance & Risk Management
+    signal: Regulatory Exposure Hours
+    relationship: quantifies
+  - stakeholder: Finance & Treasury
+    signal: Duplicate Prevention Rate
+    relationship: verifies
+  - stakeholder: Finance & Treasury
+    signal: Revenue at Risk
+    relationship: quantifies
+  - stakeholder: Payments Operations
+    signal: Transaction Success Rate
+    relationship: verifies
+  - stakeholder: Payments Operations
+    signal: Payment Volume Capacity Headroom
+    relationship: verifies
+  - stakeholder: Payments Operations
+    signal: Manual Investigation Backlog
+    relationship: quantifies
+
+operational:
+  dependency_flow: |
+    Frontend → Ledger-Writer → {Balance-Reader (HTTP sync), Ledger-DB (PostgreSQL sync)}
+    User-Service → JWT public key (startup mount only)
+    [S1, S3]
+  escalation_policy: |
+    P1: Page payments on-call → 15min: Escalate to ledger team lead → 30min: Escalate to payments engineering manager → 4hr: Compliance officer notification (if audit completeness impacted). [Constructed — demo app has no escalation policy; modeled on banking incident management]
+  alert_notification_targets: "#payments-alerts (operational), #compliance-alerts (audit completeness breaches)"
+  status: draft
+
+schema_ahead:
+  business_capability:
+    answer: |
+      Payment Transaction Acceptance (banking domain — BIAN: Payment Execution service domain). The business capability is "validate and record payment transactions with authorization, balance sufficiency, and deduplication." This capability exists independent of the Spring Boot implementation; any payment system implements the same validation-and-persist pattern. [S1; S2: BIAN alignment]
+    provenance: inferred
+  sole_implementation:
+    answer: |
+      Yes — single transaction acceptance gate in this architecture. There is no alternative payment path, no degraded mode, no bypass. If ledger-writer is replaced, the 6-step validation chain and audit trail requirement transfer. [S1: single controller, single endpoint]
+    provenance: extracted
+  persistence_analysis:
+    answer: |
+      Capability-tied (persists if implementation changes): The 6-step validation chain, the audit trail requirement, the balance sufficiency check, the deduplication requirement, the stakeholder expectations, the signal definitions (success rate, latency, capacity), the impact model.
+
+      Implementation-tied (does NOT transfer): Spring Boot, Micrometer, Guava cache (per-pod dedup), HikariCP connection pool, specific Prometheus queries, JPA/Hibernate persistence, RestTemplate HTTP client, JWT validation via Spring Security. A replacement service (e.g., Go with gRPC) would keep Business Health signals but completely change Process/System queries and telemetry.
+    provenance: inferred
+  business_processes:
+    answer: |
+      Send Payment — customer-to-customer funds transfer: initiate → validate → persist → update-balances → confirm. Ledger-writer owns the validate-and-persist steps. [S4: Send Payment flow analysis]
+    provenance: inferred
+  process_role:
+    answer: |
+      Transaction Acceptance (step 2 of Send Payment flow). What comes before: Frontend captures payment details and submits. What comes after: Balance-reader updates cached balances, customer sees confirmation. Ledger-writer IS the critical path — without it, the payment flow stops at submission. [S4: flow analysis]
+    provenance: inferred
+  journey_impact:
+    answer: |
+      When ledger-writer degrades, the Send Payment flow halts at transaction acceptance. Upstream: frontend accumulates unprocessed payment submissions. Downstream: balance-reader never sees the transaction → customer sees stale balance → payment appears lost. The most insidious impact is the deduplication gap: pod restart loses the Guava cache → client retries create duplicate ledger entries → reconciliation breaks. [S4: cascading failure analysis; S1: Guava cache architecture]
+    provenance: inferred
+  sub_capabilities:
+    answer: |
+      Yes — three distinct sub-capabilities with different failure characteristics:
+      1. Transaction Validation — JWT auth, format checks, sender authentication, business rules (steps 1-6)
+      2. Balance Verification — HTTP call to balance-reader, sufficiency check (step 7, internal transactions only)
+      3. Ledger Persistence — JPA write to ledger-db, deduplication cache update
+      [S1: LedgerWriterController.java, TransactionValidator.java]
+    provenance: extracted
+    names:
+      - Transaction Validation
+      - Balance Verification
+      - Ledger Persistence
+  sub_capability_detail:
+    answer: |
+      Transaction Validation:
+      - Steps 1-6: JWT auth → format checks → sender authentication → amount > 0 → no self-send → routing number format
+      - Failure mode: HTTP 400 with distinct error messages per step
+      - Signal: payment_validation_rate (Process)
+
+      Balance Verification:
+      - Step 7: HTTP GET to balance-reader /balances/{account_num}
+      - Only for internal transactions (fromRoutingNum == LOCAL_ROUTING_NUM)
+      - Failure mode: HTTP 500 (ResourceAccessException) or HTTP 400 (insufficient balance)
+      - Signal: balance_check_latency_p95 (Process)
+
+      Ledger Persistence:
+      - JPA transactionRepository.save() + Guava cache dedup update
+      - Failure mode: HTTP 500 (CannotCreateTransactionException)
+      - Signal: ledger_write_latency_p95 (Process)
+      [S1: LedgerWriterController.java]
+    provenance: extracted
+  telemetry_distinguishability:
+    answer: |
+      Yes — fully distinguishable via HTTP status codes and error messages:
+      - Transaction Validation failures: HTTP 400 with specific messages per validation step (e.g., "sender not authenticated", "invalid routing number")
+      - Balance Verification failures: HTTP 500 (ResourceAccessException — dependency) or HTTP 400 (insufficient balance — business logic)
+      - Ledger Persistence failures: HTTP 500 (CannotCreateTransactionException)
+      - Span-level metrics from Spring Cloud Sleuth differentiate the steps within the request lifecycle.
+      [S1: LedgerWriterController.java exception handling, TransactionValidator.java]
+    provenance: extracted
+
+gaps:
+  - "Guava dedup cache is per-pod, not distributed. Pod restart or cross-replica routing creates a deduplication blind spot — duplicate_prevention_rate measures cache effectiveness, not absolute deduplication."
+  - "No circuit breaker or timeout override on the Balance-Reader HTTP call. Slow balance-reader degrades all local transactions with no fail-fast mechanism."
+  - "Balance-reader cache staleness can cause overdraft — two rapid payments both pass the balance check due to eventual consistency. No signal detects this race condition."
+  - "JWT public key has no runtime rotation — loaded once at startup from PUB_KEY_PATH. Key rotation requires pod restart."
+  - "Escalation policy and alert routing are constructed — demo app has no operational team or incident management process."
+  - "transaction_request_rate has SLO target 0 and thresholds 0 — it is an informational/capacity-planning signal, not SLO-bearing. The schema requires these fields; the values are placeholders."
+  - "No composite health signal for Payments Operations — operators must correlate individual metrics to determine overall payment system state."
