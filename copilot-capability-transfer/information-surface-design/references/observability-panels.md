@@ -42,25 +42,27 @@ the most expensive gap.
 
 ---
 
-## 2. The triage / troubleshooting chain
+## 2. The diagnostic chain, in observability wording
 
-Incident triage is not one panel — it is a **chain** of the engine's instances, in
-a natural order (ITIL 4 Incident Management). Each question produces one panel;
-each resolves one decision and hands off to the next:
+This section instantiates the general **diagnostic chain** (see `../SKILL.md`) for
+observability — it is the incident triage flow (ITIL 4 Incident Management). Each
+step is the same need→uncertainty→decision from the general pattern; only the
+wording is observability-specific. A dashboard panel is **one** way to answer a step
+— an alert, a query, a runbook, or a dependency map are others. The rest of this
+file is what to do when the answer-surface *is* a panel.
 
-| Step | Plain question | Decision it unlocks |
-|------|----------------|---------------------|
-| 0 | *(detection — something looks wrong)* | — |
-| 1 | **Is it healthy?** | act or move on |
-| 2 | **What specifically?** | narrow focus |
-| 3 | **What's the business impact?** | urgency |
-| 4 | **Why is it red?** | remedy / root cause |
-| 5 | **What else is affected?** | blast radius / scope |
-| 6 | **Who do I call?** | escalate / ownership |
-| 7 | **What's the fix?** | resolve (runbook) |
+| Step (general move) | Observability question | Decision it unlocks |
+|---------------------|------------------------|---------------------|
+| Detect | **Is it healthy?** | act or move on |
+| Localize | **What specifically?** | narrow focus |
+| Assess | **What's the business impact?** | urgency |
+| Diagnose | **Why is it red?** | remedy / root cause |
+| Scope | **What else is affected?** | blast radius |
+| Assign | **Who do I call?** | escalate / ownership |
+| Remediate | **What's the fix?** | resolve (runbook) |
 
-The consumer does **not** need to know the machinery behind the panel. They need
-the panel to carry enough context to decide and move to the next question.
+The consumer does **not** need to know the machinery behind the answer. They need it
+to carry enough context to decide and move to the next step.
 
 ---
 

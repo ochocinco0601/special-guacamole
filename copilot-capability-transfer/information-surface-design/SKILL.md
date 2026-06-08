@@ -49,6 +49,46 @@ one shape: every answered question is the next hiring moment.
 
 ---
 
+## The diagnostic chain — a general pattern
+
+When the work is **triage or troubleshooting**, the needs don't arrive one at a
+time — they arrive in a canonical *sequence*, each one a need→uncertainty→decision,
+each handing off to the next. This is the "decisions chain" above, made concrete.
+It is the single most reusable instance of this engine.
+
+| Step | The diagnostic move | The decision it unlocks | Hands off to |
+|------|--------------------|------------------------|--------------|
+| 1 | **Detect** — is there a problem? | act or move on | localize |
+| 2 | **Localize** — what, specifically? | narrow focus | assess |
+| 3 | **Assess** — what are the stakes? | urgency | diagnose |
+| 4 | **Diagnose** — why? | remedy / root cause | scope |
+| 5 | **Scope** — what else is affected? | blast radius | assign |
+| 6 | **Assign** — who owns it? | escalate | remediate |
+| 7 | **Remediate** — what's the fix? | resolve | close (or detect again) |
+
+**The order is the point — it's the connective tissue.** Each step resolves an
+uncertainty the next one depends on: you can't weigh the stakes before you've
+localized the problem; you can't remediate before you've diagnosed it. Skipping or
+reordering a link is where triage goes wrong. The sequence isn't a checklist — it's
+a dependency chain.
+
+Two things make this pattern carry far more value than any single surface:
+
+- **It's artifact-agnostic.** A dashboard panel is *one* way to answer a step — but
+  so is an alert, a query, a runbook, a dependency map, an on-call engineer's mental
+  model, or a postmortem. Don't collapse the question into one answer-surface.
+- **It's a coverage spec, not just a flow.** Point it at an entire observability
+  *system* (not one surface) and ask: does our tooling answer all seven? Most orgs
+  answer "is it healthy?" and "why?" well, and leave "what are the stakes?" and
+  "what else is affected?" as blind spots. The chain names the gaps.
+
+The shape generalizes past observability — software debugging, security incident
+response, even clinical triage run the same detect → localize → assess → diagnose →
+scope → assign → remediate sequence. Observability is the instance with the most
+worked detail; see `references/observability-panels.md`.
+
+---
+
 ## The design method (the core practice)
 
 When you get a vague description — *"I need to see X"*, *"this report isn't
