@@ -21,8 +21,11 @@ description: >
 > claim is small and general; the value is that it holds across *every* kind of
 > surface, not just dashboards.
 >
-> **Prior art.** Christensen *Jobs To Be Done* (surfaces are "hired"); Basili
-> *GQM* (goal → question → metric); the chain echoes both.
+> **Prior art.** Christensen *Jobs To Be Done* — full form *When [circumstance],
+> I want to [job], so I can [outcome]*. The "one idea" below works the
+> [job]→[outcome] (consumption) side; step 4 of the method adds the [circumstance]
+> (supply) side — what the consumer can actually put in. Basili *GQM*
+> (goal → question → metric).
 
 ---
 
@@ -93,7 +96,7 @@ worked detail; see `references/observability-panels.md`.
 
 When you get a vague description — *"I need to see X"*, *"this report isn't
 useful"*, *"what should this form capture"* — do not jump to layout. Walk this.
-Steps 2–3 are where human judgment lives.
+Steps 2–4 are where human judgment lives.
 
 1. **Start with the vague description.** Stay in it. Don't design yet.
 2. **Walk the chain.** For the person described, articulate:
@@ -107,11 +110,28 @@ Steps 2–3 are where human judgment lives.
 3. **Articulate for review.** Write the chain out plainly. Is the need grounded
    in a real responsibility? Are the uncertainties specific enough to test? Is the
    decision concrete? Aim for *plausible*, not perfect.
-4. **Think through what satisfies the job.** Given the enumerated uncertainties,
+4. **Name what the consumer can supply — the circumstance.** The chain so far is
+   the *consumption* side: what the consumer needs *out*. Turn it around — in their
+   actual circumstance, what can they put *in*?
+   - **Inputs** — what data, telemetry, or context is actually available to populate
+     the surface?
+   - **Access** — what's reachable in their environment, under what constraint
+     (air-gapped, regulated, permissioned)?
+   - **Expertise** — what can this consumer act on *without* becoming an expert?
+
+   This is Christensen's *[circumstance]* — the half a consumption-only chain drops,
+   and it's load-bearing: **a surface whose decision needs inputs the consumer can't
+   supply is undesignable** — decoration, in the sense above. **When the constraint
+   binds** — they can't supply or act on what the decision needs — it stops being a
+   design question and becomes a *function-allocation* one (Sheridan & Verplank
+   levels of automation; Fitts's list): who does what, the tool or the human?
+   Allocate it explicitly; don't ship a surface that silently assumes inputs that
+   aren't there.
+5. **Think through what satisfies the job.** Given the enumerated uncertainties,
    what must the surface show to resolve them — and in what structure? A **naive**
    consumer needs the structure taught by the layout; an **expert** needs only
    isolation. Design for the actual consumer.
-5. **Produce or evaluate** (the two faces, below).
+6. **Produce or evaluate** (the two faces, below).
 
 ---
 
@@ -190,7 +210,11 @@ engine — it's done.
 
 - A surface collapses: **need → uncertainty → decision.** Name the decision first.
 - Method: vague description → walk the chain (need / uncertainties / decision) →
-  articulate → think through what satisfies → produce or evaluate.
+  articulate → **name what the consumer can supply (inputs / access / expertise)** →
+  think through what satisfies → produce or evaluate.
+- Supply side: a surface whose decision needs inputs the consumer can't supply is
+  undesignable. When the constraint binds, it's a *function-allocation* question
+  (who does what — tool or human), not a design one.
 - Done when: domain terms are surrounded by plain context (combinatorial meaning)
   AND the surface points to the next decision (handoff).
 - Two faces: generative (build it) and diagnostic (walk the chain, name the gaps).
