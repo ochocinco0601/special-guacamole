@@ -15,6 +15,7 @@ GitHub Copilot skills for structured thinking, writing, and analysis. Copy any s
 | **editorial** | Editorial governance for human-facing content — tone/style, production standards, writing craft principles. |
 | **doc-check** | Evaluate documentation against the Diataxis 4-type framework (tutorial, how-to, reference, explanation). |
 | **artifact-review** | Evaluate artifacts from expert perspectives using selectable review lenses (usability, clarity, stakeholder fit). |
+| **information-surface-design** | Design or evaluate any information surface (dashboard, panel, intake form, report) so it collapses need → uncertainty → decision. Includes a worked observability-panel instance. |
 
 ## Install
 
