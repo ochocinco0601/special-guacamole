@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Business Observability — Product Owner Reference</title>
+<style>
+  :root{
+    --ivory:#FAF9F5; --paper:#FFFFFF; --slate:#141413;
+    --g50:#F5F4F0; --g100:#ECEAE3; --g200:#DCD9CF; --g300:#C4C0B3;
+    --g400:#9E9A8C; --g500:#79766A; --g600:#57544B; --g700:#3A3833;
+    --serif:ui-serif,Georgia,"Times New Roman",serif;
+    --sans:system-ui,-apple-system,"Segoe UI",sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--ivory); color:var(--slate);
+    font-family:var(--sans); font-size:14px; line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  .sheet{ max-width:840px; margin:28px auto; background:var(--paper);
+    border:1px solid var(--g200); padding:40px 46px 32px; }
+
+  header{ border-bottom:1px solid var(--g300); padding-bottom:14px; margin-bottom:6px; }
+  h1{ font-family:var(--serif); font-weight:500; font-size:22px; letter-spacing:-.005em; margin:0 0 5px; }
+  .purpose{ color:var(--g600); font-size:13px; margin:0; }
+
+  section{ margin-top:22px; }
+  h2{ font-family:var(--serif); font-weight:500; font-size:15.5px; margin:0 0 8px; }
+  p{ margin:0 0 9px; }
+
+  .chainline{ border-left:2px solid var(--g300); padding:4px 0 4px 14px;
+    color:var(--g700); font-family:var(--mono); font-size:12px; margin:9px 0; }
+
+  table{ width:100%; border-collapse:collapse; margin:6px 0; font-size:13.5px; }
+  th,td{ text-align:left; padding:8px 12px; border:1px solid var(--g200); vertical-align:top; }
+  thead th{ background:var(--g50); font-family:var(--mono); font-size:10.5px;
+    text-transform:uppercase; letter-spacing:.06em; color:var(--g600); font-weight:600; }
+  .chaintbl td:first-child{ width:24%; color:var(--g600); }
+
+  /* Stakeholder threads */
+  .thread{ border-left:2px solid var(--g300); padding:2px 0 2px 16px; margin:14px 0; }
+  .thread .who{ margin:0 0 6px; }
+  .thread .who b{ font-weight:600; }
+  .thread .tag{ font-family:var(--mono); font-size:10.5px; text-transform:uppercase;
+    letter-spacing:.05em; color:var(--g500); }
+  .chain{ display:grid; grid-template-columns:max-content 1fr; gap:3px 14px; font-size:13px; }
+  .chain dt{ font-family:var(--mono); font-size:10.5px; text-transform:uppercase;
+    letter-spacing:.04em; color:var(--g500); padding-top:2px; white-space:nowrap; }
+  .chain dd{ margin:0; }
+
+  ol.items{ margin:6px 0 0; padding-left:20px; }
+  ol.items li{ padding:5px 0; }
+  ol.items b{ font-weight:600; }
+  ol.items .hint{ color:var(--g600); }
+
+  .error{ border:1px solid var(--g300); background:var(--g50); padding:12px 16px; margin-top:8px; }
+  .error .lbl{ font-family:var(--mono); font-size:10.5px; text-transform:uppercase;
+    letter-spacing:.06em; color:var(--g600); font-weight:600; margin:0 0 5px; }
+  .error p{ margin:0; }
+
+  footer{ margin-top:26px; padding-top:13px; border-top:1px solid var(--g200);
+    font-size:12.5px; color:var(--g500); }
+
+  @media print{
+    @page{ margin:13mm; }
+    body{ background:#fff; font-size:11px; }
+    .sheet{ margin:0; border:0; padding:0; max-width:none; }
+    h1{ font-size:19px; } h2{ font-size:14px; }
+    section{ margin-top:14px; }
+    .thread,table,.error{ page-break-inside:avoid; }
+  }
+</style>
+</head>
+<body>
+<main class="sheet">
+
+  <header>
+    <h1>Business Observability — Product Owner Reference</h1>
+    <p class="purpose">Defines the business observability motivation chain and how to specify one for a capability you own.</p>
+  </header>
+
+  <section>
+    <h2>What it is</h2>
+    <p>Business observability connects what a capability's <b>stakeholders</b> expect to <b>signals</b> that show, in production, whether those expectations are being met.</p>
+    <p>A capability serves several stakeholders — customers, compliance, finance, operations — and each holds a different expectation. Business observability covers all of them, not only the customer-facing one.</p>
+  </section>
+
+  <section>
+    <h2>The motivation chain</h2>
+    <p>For each stakeholder, one chain:</p>
+    <p class="chainline">who cares &rarr; what they expect &rarr; what we need to know &rarr; how we'd know &rarr; what's at risk</p>
+    <table class="chaintbl">
+      <thead><tr><th>Link</th><th>Question it answers</th></tr></thead>
+      <tbody>
+        <tr><td>Stakeholder</td><td>Who cares about this capability?</td></tr>
+        <tr><td>Expectation</td><td>What do they expect it to do?</td></tr>
+        <tr><td>Need</td><td>What do we need to know to confirm the expectation is met?</td></tr>
+        <tr><td>Signal</td><td>How would we know — what do we measure, and what is the target?</td></tr>
+        <tr><td>Impact</td><td>What is at risk if it stays unmet?</td></tr>
+      </tbody>
+    </table>
+    <p>One expectation may decompose into more than one need (e.g. are payments completing? completing fast enough? absorbing volume spikes?). Each need gets its own signal.</p>
+  </section>
+
+  <section>
+    <h2>Example — one capability, several stakeholders</h2>
+    <p>Capability: <b>Payment Processor</b> — validates and records every customer payment. Tier 1; blocking step in Send Payment.</p>
+
+    <div class="thread">
+      <p class="who"><b>Bank Customers</b> <span class="tag">· Customer Experience · Critical</span></p>
+      <dl class="chain">
+        <dt>expects</dt><dd>payments complete successfully and quickly</dd>
+        <dt>need</dt><dd>are customer payments completing successfully?</dd>
+        <dt>good looks like</dt><dd>transaction success rate &ge; 99.5% (30-day rolling)</dd>
+        <dt>verify with</dt><dd>Transaction Success Rate — target 99.5%</dd>
+        <dt>if failing, check</dt><dd>Payment Validation Rate · Balance Check Latency p95 · Ledger Write Latency p95</dd>
+        <dt>impact</dt><dd>Customer Experience (customers/hour) · Financial ($/hour)</dd>
+      </dl>
+    </div>
+
+    <div class="thread">
+      <p class="who"><b>Compliance &amp; Risk Management</b> <span class="tag">· Regulatory · Critical</span></p>
+      <dl class="chain">
+        <dt>expects</dt><dd>a complete audit trail for every transaction</dd>
+        <dt>need</dt><dd>does every transaction produce a complete, auditable record?</dd>
+        <dt>good looks like</dt><dd>audit completeness &ge; 99.99% (30-day rolling)</dd>
+        <dt>verify with</dt><dd>Transaction Audit Completeness — target 99.99%</dd>
+        <dt>impact</dt><dd>Regulatory (hours)</dd>
+      </dl>
+    </div>
+
+    <div class="thread">
+      <p class="who"><b>Finance &amp; Treasury</b> <span class="tag">· Financial · High</span></p>
+      <dl class="chain">
+        <dt>expects</dt><dd>accurate ledger balances, no duplicates</dd>
+        <dt>need</dt><dd>are duplicate payment attempts caught before they reach the ledger?</dd>
+        <dt>good looks like</dt><dd>duplicate prevention rate &ge; 99.9% (30-day rolling)</dd>
+        <dt>verify with</dt><dd>Duplicate Prevention Rate — target 99.9%</dd>
+        <dt>impact</dt><dd>Financial (duplicates/day)</dd>
+      </dl>
+    </div>
+
+    <p style="font-size:12.5px;color:var(--g600);margin-top:10px;">Same capability, three stakeholders, three different expectations, three signals. A fourth — Payments Operations — expects failures diagnosable within 15 minutes, served by the signals above.</p>
+  </section>
+
+  <section>
+    <h2>Specifying it for your capability</h2>
+    <p>For each stakeholder of your capability, walk the chain:</p>
+    <ol class="items">
+      <li><b>Stakeholder</b> — who cares, and how critical it is to them.</li>
+      <li><b>Expectation</b> — what they expect the capability to do.</li>
+      <li><b>Need</b> — what you need to know to confirm it. <span class="hint">One expectation may yield more than one need.</span></li>
+      <li><b>Signal</b> — how you would know: the measure, its target, and the diagnostic signals to check when it fails.</li>
+      <li><b>Impact</b> — what is at risk, and in what unit, if it stays unmet.</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Common error</h2>
+    <div class="error">
+      <p class="lbl">Common error</p>
+      <p>Treating business observability as a single customer-facing outcome. A Tier 1 capability answers to several stakeholders — regulatory, financial, operational — whose expectations are not customer-facing at all. Walk the chain for each stakeholder, not just the customer. And state each need as a stakeholder expectation met, not as a system metric (uptime and latency are system health, not stakeholder outcomes).</p>
+    </div>
+  </section>
+
+  <footer>
+    Aggregation: a delivery-team PO holds the chains for one capability; a solution PO holds the set across capabilities; the product leader sees the portfolio.
+  </footer>
+
+</main>
+</body>
+</html>
