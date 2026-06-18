@@ -1,0 +1,492 @@
+<!-- THIS FILE IS GENERATED. DO NOT EDIT DIRECTLY.
+     Source: things/enterprise-engagement/observability-champions-ai-demo/executive-view/wf-splunk-cloud-logging-v2-sud.yaml
+     Builder: things/enterprise-engagement/observability-champions-ai-demo/executive-view/render_executive_view.py
+     Build: python things/enterprise-engagement/observability-champions-ai-demo/executive-view/render_executive_view.py
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI-Guided Signal Selection — Executive View</title>
+<style>
+:root{
+  --font:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  --mono:'Cascadia Code','Consolas',monospace;
+  --max-w:880px; --border:#e0e0e0; --text:#2d2d2d; --text-sec:#5a5a5a;
+  --accent:#2c5282; --accent-tint:#ebf0f7; --risk:#922b21; --label:#7f8c8d;
+  --src-fg:#7d3c98; --src-bg:#f6f3fb; --thread:#d6e4f0;
+  --extracted:#3d8b3d; --inferred:#2c5282; --constructed:#b45309;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font);max-width:var(--max-w);margin:0 auto;
+     padding:0 22px 56px;color:var(--text);line-height:1.5;}
+.toolbar{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--border);
+  padding:8px 0 0;margin-bottom:14px;z-index:5;}
+.service-header{margin-bottom:10px;}
+.service-header .src-toggle{font-size:0.85em;margin-top:8px;}
+.service-header .src-toggle label{cursor:pointer;display:inline-flex;align-items:center;gap:6px;color:var(--text-sec);}
+/* Tabs */
+.tab-bar{display:flex;gap:0;border-bottom:2px solid var(--border);margin:0;}
+.tab-btn{padding:8px 20px;font-size:0.9em;font-weight:600;border:none;background:none;
+  color:var(--text-sec);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;
+  transition:color 0.15s,border-color 0.15s;}
+.tab-btn:hover{color:var(--text);}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+h1{font-size:1.9em;margin-bottom:5px;}
+.draft-banner{background:var(--accent-tint);border-left:4px solid var(--accent);border-radius:0 6px 6px 0;
+  padding:10px 14px;margin-bottom:6px;font-size:0.92em;}
+.draft-banner strong{color:var(--accent);}
+.section{margin-top:26px;padding-top:15px;border-top:2px solid var(--border);}
+.section:first-child{margin-top:12px;border-top:none;padding-top:0;}
+.section h2{font-size:1.25em;margin-bottom:3px;}
+.section .sub{font-size:0.86em;color:var(--text-sec);margin-bottom:10px;}
+.card{border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:7px;
+  padding:10px 14px;margin:7px 0;}
+.row{display:grid;grid-template-columns:124px 1fr;gap:10px;padding:2px 0;font-size:0.95em;}
+.row .label{color:var(--label);font-size:0.84em;padding-top:2px;}
+.value.risk,.risk{color:var(--risk);}
+.badge{display:inline-block;padding:2px 9px;border-radius:12px;font-size:0.7em;font-weight:700;
+  text-transform:uppercase;letter-spacing:0.4px;vertical-align:middle;}
+.cat-customer{background:#ebf5fb;color:#1a5276;} .cat-regulatory{background:#fdedec;color:#922b21;}
+.cat-financial{background:#fef9e7;color:#7d6608;} .cat-operational{background:#f0f3f4;color:#5d6d7e;}
+.prio-critical{background:#fadbd8;color:#922b21;} .prio-high{background:#fdebd0;color:#935116;}
+.prio-medium{background:#fdebd0;color:#935116;} .prio-low{background:#d5f5e3;color:#1e8449;}
+.prov-extracted{background:#e8f5e9;color:#2e7d32;} .prov-inferred{background:#e3f2fd;color:#1565c0;}
+.prov-constructed{background:#fff3e0;color:#e65100;}
+/* Motivation chains */
+.chain{border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:7px;
+  padding:12px 16px;margin:12px 0;}
+.chain-who{font-weight:700;font-size:1.1em;margin-bottom:6px;}
+.chain-who .who-name{margin-right:6px;}
+.chain-exp{font-size:1.0em;margin:6px 0 2px;}
+.need-chain{margin:8px 0 12px 10px;padding:4px 0 4px 16px;border-left:2px solid var(--thread);}
+.step{padding:2px 0;font-size:0.95em;}
+.step.need{font-weight:600;}
+.step.verify strong{color:var(--accent);}
+.step.risk-step,.step.conseq .risk{color:var(--risk);}
+.conn{display:inline-block;color:var(--text-sec);font-style:italic;font-size:0.74em;
+  text-transform:uppercase;letter-spacing:0.4px;margin-right:5px;}
+.conn.warn{color:var(--risk);font-style:normal;font-weight:700;}
+.why{font-size:0.84em;color:var(--text-sec);margin:1px 0 3px;font-style:italic;}
+footer{margin-top:40px;padding-top:14px;border-top:1px solid var(--border);
+  color:#9a9a9a;font-size:0.8em;line-height:1.5;}
+/* Source-field annotations */
+body:not(.show-src) .src{display:none;}
+.src{font-family:var(--mono);font-size:0.74em;color:var(--src-fg);background:var(--src-bg);
+  border-radius:3px;padding:1px 5px;margin-left:4px;display:inline-block;}
+/* Thinking tab */
+.think-p{font-size:0.95em;line-height:1.6;margin:8px 0;}
+.think-chain{border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:7px;
+  padding:12px 16px;margin:12px 0;}
+.think-chain .step{padding:4px 0;}
+.ref-table{width:100%;border-collapse:collapse;font-size:0.92em;margin:12px 0;}
+.ref-table th{text-align:left;padding:8px 10px;background:var(--accent-tint);border-bottom:2px solid var(--border);font-weight:600;color:var(--accent);}
+.ref-table td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;line-height:1.5;}
+.ref-table tr:last-child td{border-bottom:none;}
+.ref-table td:first-child{white-space:nowrap;width:1%;}
+.ref-group{font-size:1.05em;color:var(--accent);margin:20px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--border);}
+.ref-group:first-of-type{margin-top:8px;}
+.think-list{margin:4px 0 12px 20px;padding:0;font-size:0.95em;color:var(--text);line-height:1.6;}
+.think-list li{margin:2px 0;}
+.think-prov{margin:10px 0;padding:10px 14px;background:#f8f9fa;border-radius:7px;
+  font-size:0.92em;line-height:2;}
+@media (max-width:560px){ .row{grid-template-columns:1fr;gap:1px;} }
+</style>
+</head>
+<body>
+<div class="toolbar">
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="tab-think">The Framework</button>
+    <button class="tab-btn" data-tab="tab-service">Splunk Cloud Enterprise Logging</button>
+    <button class="tab-btn" data-tab="tab-dash">Dashboard</button>
+    <button class="tab-btn" data-tab="tab-refs">Prior Art</button>
+  </div>
+</div>
+<div id="tab-think" class="tab-panel active">
+<section class="section think-section">
+  <h2>The question</h2>
+  <p class="think-p">Customers hire products to meet a need.<br>
+  <strong>Is it doing its job? When it&rsquo;s not &mdash; what&rsquo;s the impact?</strong></p>
+</section>
+
+<section class="section think-section">
+  <h2>The reasoning chain</h2>
+  <div class="think-chain">
+    <div class="step"><span class="conn">someone depends on this</span> and has an expectation of what &ldquo;working&rdquo; means</div>
+    <div class="step conseq"><span class="conn">if that breaks</span> there is a consequence &mdash; to whom, how severe</div>
+    <div class="step need"><span class="conn">so we need to know</span> a measurable condition &mdash; not &ldquo;it feels healthy&rdquo; but a number with a threshold</div>
+    <div class="step verify"><span class="conn">detected by</span> telemetry the system already produces</div>
+    <div class="step measure"><span class="conn">creates</span> a signal &mdash; measurement, threshold, owner, next action</div>
+    <div class="step diagnose"><span class="conn">informs</span> a dashboard and a runbook &mdash; current state against target, what to do when it fires</div>
+  </div>
+  <p class="think-p">The chain works the same way for every service. What changes is the answers.</p>
+</section>
+
+<section class="section think-section">
+  <h2>Who does this work</h2>
+  <p class="think-p">A <strong>requirements engineer</strong> who:</p>
+  <ul class="think-list">
+    <li>decomposes stakeholder expectations into measurable needs</li>
+    <li>walks a structured chain for each one &mdash; what breaks, what to measure, what good looks like</li>
+  </ul>
+  <p class="think-p">An <strong>observability practitioner</strong> who:</p>
+  <ul class="think-list">
+    <li>designs signals across business, process, and system layers</li>
+    <li>builds diagnostic paths &mdash; when something degrades, where to look</li>
+  </ul>
+  <p class="think-p">A <strong>service analyst</strong> who:</p>
+  <ul class="think-list">
+    <li>reads architecture, runbooks, incident history</li>
+    <li>maps where the service sits in business processes</li>
+    <li>checks coverage &mdash; is every expectation measured</li>
+  </ul>
+  <p class="think-p">The instrument brings all three together in one pass.
+  Where it&rsquo;s confident, it tells you. Where it&rsquo;s guessing, it tells you that too.</p>
+  <div class="think-prov">
+    <span class="badge prov-extracted">Extracted</span> source said it &middot;
+    <span class="badge prov-inferred">Inferred</span> reasonable conclusion &middot;
+    <span class="badge prov-constructed">Constructed</span> best guess, needs validation
+  </div>
+</section>
+</div>
+<div id="tab-service" class="tab-panel"><div class="service-header">
+  <h1>Splunk Cloud Enterprise Logging<span class="src">metadata.display_name</span></h1>
+  <div class="draft-banner"><strong>First-pass draft.</strong> Every value below comes from the service understanding document. Toggle &ldquo;Show field sources&rdquo; to see which document field produced each value.</div>
+  <div class="src-toggle"><label><input type="checkbox" id="src-toggle"> Show field sources</label></div>
+</div>
+<section class="section"><h2>What this service is</h2><p class="sub">Identity — straight from the service profile. The reasoning is below.</p><div class="card"><div class="row"><div class="label">What it is</div><div class="value">Enterprise log platform — 1.1M searches/day serving 5,000 users across all lines of business for incident troubleshooting.<span class="src">service.business_purpose_display</span></div></div></div></section><section class="section"><h2>Why these signals — the reasoning, stakeholder by stakeholder</h2><p class="sub">Each thread is the chain the instrument walked: who cares → what they expect → what we need to know → how we&#x27;d know → what&#x27;s at risk.</p><div class="chain"><div class="chain-who"><span class="who-name">Platform Operations</span> <span class="badge cat-operational">Operational</span> <span class="badge prio-critical">Critical</span><span class="src">stakeholders[].name</span></div><div class="chain-exp"><span class="conn">expects</span> Proactive platform health detection and remediation <span class="badge prov-extracted">Extracted</span><span class="src">stakeholders[].expectations[].display_text</span></div><div class="step conseq"><span class="conn">if unmet</span> <span class="risk">Crisis mode — phone calls replace dashboards, adding ~1 hour to incident response.</span><span class="src">stakeholders[].impact_description_display</span></div><div class="need-chain"><div class="step need"><span class="conn">so we need to know</span> Can we detect all categories of platform health issues?<span class="src">needs[].display_name</span></div><div class="why">Proactive detection requires covering all categories of degradation — hardware faults, pipeline saturation, search performance, and cluster instability. One need, but verified by multiple signals because no single metric captures platform health.<span class="src">need_expectations[].decomposition_rationale</span></div><div class="step measure"><span class="conn">good looks like</span> Data freshness, alert reliability, search speed, and queue rate all reporting continuously. Indexer health, pipeline backlog, and cluster stability monitored as leading indicators. Detection before consumers report degradation.<span class="src">needs[].scenario.response_measure</span></div><div class="step verify"><span class="conn">we verify it with</span> Log data arriving within 30 seconds — are dashboards and alerts working with fresh data? — Target: <strong>99.9%</strong> <span class="badge prov-extracted">Extracted</span><span class="src">need_signals[role=outcome] -&gt; signals[].business_description_display + slo_target</span></div><div class="step verify"><span class="conn">we verify it with</span> Scheduled searches executing reliably — are our automated alerts and reports running? — Target: <strong>99.9%</strong> <span class="badge prov-extracted">Extracted</span><span class="src">need_signals[role=outcome] -&gt; signals[].business_description_display + slo_target</span></div><div class="step verify"><span class="conn">we verify it with</span> Troubleshooting queries completing under 20 seconds — at 90%, most sessions hit a wall. — Target: <strong>98%</strong> <span class="badge prov-extracted">Extracted</span><span class="src">need_signals[role=outcome] -&gt; signals[].business_description_display + slo_target</span></div><div class="step verify"><span class="conn">we verify it with</span> Searches starting immediately — at 88%, over 130K searches per day wait in queue. — Target: <strong>99%</strong> <span class="badge prov-extracted">Extracted</span><span class="src">need_signals[role=outcome] -&gt; signals[].business_description_display + slo_target</span></div><div class="step diagnose"><span class="conn">if it&#x27;s failing, we check</span> Indexers actually completing searches — catches the &#x27;alive but not serving&#x27; gap that caused the May 5th cascade. &middot; Indexing pipeline keeping up — a growing backlog predicts 18-hour shutdowns and data risk. &middot; Cluster stability — a rebuild spike is the early warning signal before search degrades. &middot; Indexer fleet health — at 239 bare-metal machines, hardware degradation is a when, not an if.<span class="src">need_signals[role=diagnostic] -&gt; signals[].business_description_display</span></div><div class="step impact"><span class="conn">if it stays broken, the impact is</span> Operational (minutes_added/incident)<span class="src">needs[].impacts[].category, .unit</span></div><div class="step risk-step"><span class="conn warn">⚠ but a required condition is NOT met</span> Per-indexer search health monitoring is deployed and reporting<span class="src">needs[].preconditions[current_state=violated]</span></div><div class="step risk-step"><span class="conn warn">⚠ but a required condition is NOT met</span> Flush backlog is monitored continuously, not only during shutdown<span class="src">needs[].preconditions[current_state=violated]</span></div><div class="step risk-step"><span class="conn warn">⚠ but a required condition is NOT met</span> Bucket map rebuild rate is monitored as a rate signal<span class="src">needs[].preconditions[current_state=violated]</span></div></div></div><div class="chain"><div class="chain-who"><span class="who-name">LOB Engineering Teams</span> <span class="badge cat-customer">Customer Experience</span> <span class="badge prio-critical">Critical</span><span class="src">stakeholders[].name</span></div><div class="chain-exp"><span class="conn">expects</span> 15-minute troubleshooting window — search works when you need it <span class="badge prov-extracted">Extracted</span><span class="src">stakeholders[].expectations[].display_text</span></div><div class="step conseq"><span class="conn">if unmet</span> <span class="risk">Five LOBs at a vendor engineering session — platform instability now directly impacts their incident response.</span><span class="src">stakeholders[].impact_description_display</span></div><div class="need-chain"><div class="step need"><span class="conn">so we need to know</span> Do troubleshooting queries complete within the SLA window?<span class="src">needs[].display_name</span></div><div class="why">The 15-minute troubleshooting window requires two things to be true: queries complete fast enough, and queries start immediately. This need covers the first — are results coming back within 20 seconds?<span class="src">need_expectations[].decomposition_rationale</span></div><div class="step measure"><span class="conn">good looks like</span> Ad-hoc search runtime compliance &gt;= 98% over 7d rolling window<span class="src">needs[].scenario.response_measure</span></div><div class="step verify"><span class="conn">we verify it with</span> Troubleshooting queries completing under 20 seconds — at 90%, most sessions hit a wall. — Target: <strong>98%</strong> <span class="badge prov-extracted">Extracted</span><span class="src">need_signals[role=outcome] -&gt; signals[].business_description_display + slo_target</span></div><div class="step diagnose"><span class="conn">if it&#x27;s failing, we check</span> Indexers actually completing searches — catches the &#x27;alive but not serving&#x27; gap that caused the May 5th cascade. &middot; Cluster stability — a rebuild spike is the early warning signal before search degrades. &middot; Indexer fleet health — at 239 bare-metal machines, hardware degradation is a when, not an if.<span class="src">need_signals[role=diagnostic] -&gt; signals[].business_description_display</span></div><div class="step impact"><span class="conn">if it stays broken, the impact is</span> Customer Experience<span class="src">needs[].impacts[].category, .unit</span></div><div class="step risk-step"><span class="conn warn">⚠ but a required condition is NOT met</span> Parsing job bug is resolved (currently adding 7-15 seconds to ALL searches)<span class="src">needs[].preconditions[current_state=violated]</span></div><div class="step risk-step"><span class="conn warn">⚠ but a required condition is NOT met</span> CT SHC is split from Ad-hoc SHC (Priority 1, target 6/30)<span class="src">needs[].preconditions[current_state=violated]</span></div><div class="step also"><span class="conn">also matters to</span> Platform Operations<span class="src">need_stakeholders[]</span></div></div><div class="need-chain"><div class="step need"><span class="conn">so we need to know</span> Can engineers search immediately when an incident occurs?<span class="src">needs[].display_name</span></div><div class="why">The second part of the 15-minute window — even fast queries don&#x27;t help if you&#x27;re waiting in a queue to run them. At 12% queuing, engineers lose minutes before they even start troubleshooting.<span class="src">need_expectations[].decomposition_rationale</span></div><div class="step measure"><span class="conn">good looks like</span> Ad-hoc search immediate availability &gt;= 99% over 7d rolling window<span class="src">needs[].scenario.response_measure</span></div><div class="step verify"><span class="conn">we verify it with</span> Searches starting immediately — at 88%, over 130K searches per day wait in queue. — Target: <strong>99%</strong> <span class="badge prov-extracted">Extracted</span><span class="src">need_signals[role=outcome] -&gt; signals[].business_description_display + slo_target</span></div><div class="step diagnose"><span class="conn">if it&#x27;s failing, we check</span> Indexers actually completing searches — catches the &#x27;alive but not serving&#x27; gap that caused the May 5th cascade.<span class="src">need_signals[role=diagnostic] -&gt; signals[].business_description_display</span></div><div class="step impact"><span class="conn">if it stays broken, the impact is</span> Customer Experience<span class="src">needs[].impacts[].category, .unit</span></div><div class="step risk-step"><span class="conn warn">⚠ but a required condition is NOT met</span> CT SHC split reduces shared search head cluster contention<span class="src">needs[].preconditions[current_state=violated]</span></div><div class="step risk-step"><span class="conn warn">⚠ but a required condition is NOT met</span> Per-indexer concurrency enables per-node capacity allocation instead of shared pool<span class="src">needs[].preconditions[current_state=violated]</span></div><div class="step also"><span class="conn">also matters to</span> LOB End Users<span class="src">need_stakeholders[]</span></div></div></div><div class="chain"><div class="chain-who"><span class="who-name">LOB End Users</span> <span class="badge cat-customer">Customer Experience</span> <span class="badge prio-high">High</span><span class="src">stakeholders[].name</span></div><div class="chain-exp"><span class="conn">expects</span> Responsive search and dashboard experience <span class="badge prov-extracted">Extracted</span><span class="src">stakeholders[].expectations[].display_text</span></div><div class="step conseq"><span class="conn">if unmet</span> <span class="risk">10-20% chance of being queued, 10% chance of 20+ second waits — refresh amplification makes it worse.</span><span class="src">stakeholders[].impact_description_display</span></div><div class="need-chain"><div class="step need"><span class="conn">so we need to know</span> Do searches and dashboards respond within acceptable time?<span class="src">needs[].display_name</span></div><div class="why">End users judge the platform by one thing: does it respond when I use it? Search speed and queue rate are the same measurements that matter for LOB engineers, but the reason is different — engineers need it for incidents, end users need it for daily work.<span class="src">need_expectations[].decomposition_rationale</span></div><div class="step measure"><span class="conn">good looks like</span> Search runtime compliance &gt;= 98% AND immediate availability &gt;= 99%<span class="src">needs[].scenario.response_measure</span></div><div class="step verify"><span class="conn">we verify it with</span> Troubleshooting queries completing under 20 seconds — at 90%, most sessions hit a wall. — Target: <strong>98%</strong> <span class="badge prov-extracted">Extracted</span><span class="src">need_signals[role=outcome] -&gt; signals[].business_description_display + slo_target</span></div><div class="step verify"><span class="conn">we verify it with</span> Searches starting immediately — at 88%, over 130K searches per day wait in queue. — Target: <strong>99%</strong> <span class="badge prov-extracted">Extracted</span><span class="src">need_signals[role=outcome] -&gt; signals[].business_description_display + slo_target</span></div><div class="step impact"><span class="conn">if it stays broken, the impact is</span> Customer Experience<span class="src">needs[].impacts[].category, .unit</span></div><div class="step risk-step"><span class="conn warn">⚠ but a required condition is NOT met</span> A consumer-facing transparency mechanism exists to communicate degradation<span class="src">needs[].preconditions[current_state=violated]</span></div></div></div><div class="chain"><div class="chain-who"><span class="who-name">Executive Leadership</span> <span class="badge cat-financial">Financial</span> <span class="badge prio-medium">Medium</span><span class="src">stakeholders[].name</span></div><div class="chain-exp"><span class="conn">expects</span> Quantified SLO compliance and investment ROI <span class="badge prov-inferred">Inferred</span><span class="src">stakeholders[].expectations[].display_text</span></div><div class="step conseq"><span class="conn">if unmet</span> <span class="risk">Year-of-value deferred, migration ROI negative, operational risk management actively engaged.</span><span class="src">stakeholders[].impact_description_display</span></div><div class="need-chain"><div class="step need"><span class="conn">so we need to know</span> Are SLOs quantified with error budgets and compliance tracking?<span class="src">needs[].display_name</span></div><div class="why">Leadership needs data-backed answers about platform health. Today four KPIs exist with color-coded thresholds, but no formal SLO definitions, no error budgets, and no compliance tracking. You can&#x27;t measure what you haven&#x27;t defined.<span class="src">need_expectations[].decomposition_rationale</span></div><div class="step measure"><span class="conn">good looks like</span> Formal SLO definitions exist with error budgets and compliance tracking<span class="src">needs[].scenario.response_measure</span></div><div class="step diagnose"><span class="conn">if it&#x27;s failing, we check</span> Troubleshooting queries completing under 20 seconds — at 90%, most sessions hit a wall.<span class="src">need_signals[role=diagnostic] -&gt; signals[].business_description_display</span></div><div class="step impact"><span class="conn">if it stays broken, the impact is</span> Financial<span class="src">needs[].impacts[].category, .unit</span></div><div class="step risk-step"><span class="conn warn">⚠ but a required condition is NOT met</span> Formal SLO/SLI definitions exist (none exist today)<span class="src">needs[].preconditions[current_state=violated]</span></div></div></div><div class="chain"><div class="chain-who"><span class="who-name">Downstream Banking Customers</span> <span class="badge cat-customer">Customer Experience</span> <span class="badge prio-medium">Medium</span><span class="src">stakeholders[].name</span></div><div class="chain-exp"><span class="conn">expects</span> Incident resolution not prolonged by log platform degradation <span class="badge prov-inferred">Inferred</span><span class="src">stakeholders[].expectations[].display_text</span></div><div class="step conseq"><span class="conn">if unmet</span> <span class="risk">Splunk&#x27;s 90-minute degradation extends every concurrent LOB incident — downstream customer impact unquantified.</span><span class="src">stakeholders[].impact_description_display</span></div><div class="need-chain"><div class="step need"><span class="conn">so we need to know</span> Does Splunk degradation stay contained so LOB incidents don&#x27;t extend?<span class="src">needs[].display_name</span></div><div class="why">Banking customers don&#x27;t use Splunk, but they feel it when it breaks — Splunk degradation extends every concurrent LOB incident. The same search speed and queue rate that matter for LOB engineers determine whether downstream customers wait longer.<span class="src">need_expectations[].decomposition_rationale</span></div><div class="step measure"><span class="conn">good looks like</span> MTTR amplification during Splunk degradation is quantified and within acceptable bounds<span class="src">needs[].scenario.response_measure</span></div><div class="step verify"><span class="conn">we verify it with</span> Troubleshooting queries completing under 20 seconds — at 90%, most sessions hit a wall. — Target: <strong>98%</strong> <span class="badge prov-extracted">Extracted</span><span class="src">need_signals[role=outcome] -&gt; signals[].business_description_display + slo_target</span></div><div class="step verify"><span class="conn">we verify it with</span> Searches starting immediately — at 88%, over 130K searches per day wait in queue. — Target: <strong>99%</strong> <span class="badge prov-extracted">Extracted</span><span class="src">need_signals[role=outcome] -&gt; signals[].business_description_display + slo_target</span></div><div class="step impact"><span class="conn">if it stays broken, the impact is</span> Customer Experience (affected_lobs/incident)<span class="src">needs[].impacts[].category, .unit</span></div><div class="step risk-step"><span class="conn warn">⚠ but a required condition is NOT met</span> Per-LOB search experience decomposition exists to assess differential impact<span class="src">needs[].preconditions[current_state=violated]</span></div><div class="step risk-step"><span class="conn warn">⚠ but a required condition is NOT met</span> MTTR amplification is measured (currently unquantified)<span class="src">needs[].preconditions[current_state=violated]</span></div><div class="step also"><span class="conn">also matters to</span> LOB Engineering Teams<span class="src">need_stakeholders[]</span></div></div></div></section></div>
+<div id="tab-dash" class="tab-panel"><iframe title="Health Panel" style="width:100%;height:900px;border:1px solid var(--border);border-radius:8px;background:#1a1a2e;" srcdoc="&lt;!-- THIS FILE IS GENERATED. DO NOT EDIT DIRECTLY.
+     Source: things/enterprise-engagement/observability-champions-ai-demo/executive-view/wf-splunk-cloud-logging-v2-sud.yaml
+     Builder: things/enterprise-engagement/observability-champions-ai-demo/executive-view/render_dashboard_view.py
+     Build: python things/enterprise-engagement/observability-champions-ai-demo/executive-view/render_dashboard_view.py
+--&gt;
+&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;UTF-8&quot;&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;
+&lt;title&gt;Splunk Cloud Enterprise Logging — Health Panel&lt;/title&gt;
+&lt;style&gt;
+:root {
+  --bg: #1a1a2e;
+  --surface: #16213e;
+  --surface-raised: #1c2942;
+  --border: #2a3a5c;
+  --text: #e0e0e0;
+  --text-muted: #8899aa;
+  --text-dim: #556677;
+  --green: #2ecc71;
+  --yellow: #f39c12;
+  --red: #e74c3c;
+  --green-bg: rgba(46, 204, 113, 0.08);
+  --yellow-bg: rgba(243, 156, 18, 0.08);
+  --red-bg: rgba(231, 76, 60, 0.08);
+  --accent: #5dade2;
+  --section-bh: #3498db;
+  --section-process: #9b59b6;
+  --section-system: #1abc9c;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, &#x27;Segoe UI&#x27;, Roboto, sans-serif;
+  background: var(--bg); color: var(--text);
+  padding: 24px; max-width: 960px; margin: 0 auto;
+}
+body:not(.show-src) .src { display: none; }
+.toggle-bar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 14px; background: var(--surface-raised); color: var(--text-muted);
+  border: 1px solid var(--border); border-radius: 6px; margin-bottom: 16px; font-size: 12px;
+}
+.toggle-bar label { cursor: pointer; display: flex; align-items: center; gap: 6px; }
+.src {
+  font-size: 10px; color: var(--text-dim); font-family: ui-monospace, monospace;
+  background: rgba(255,255,255,0.03); padding: 1px 6px; border-radius: 3px;
+  border: 1px solid var(--border); display: inline-block; margin-top: 3px;
+}
+.panel { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.panel-header {
+  padding: 20px 24px; border-bottom: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: flex-start;
+}
+.panel-title { font-size: 18px; font-weight: 600; color: var(--text); }
+.panel-subtitle { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+.overall-status {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; letter-spacing: 0.5px;
+}
+.overall-status.healthy { background: var(--green-bg); color: var(--green); }
+.overall-status.warning { background: var(--yellow-bg); color: var(--yellow); }
+.overall-status.critical { background: var(--red-bg); color: var(--red); }
+.status-dot { width: 10px; height: 10px; border-radius: 50%; }
+.status-dot.healthy { background: var(--green); }
+.status-dot.warning { background: var(--yellow); }
+.status-dot.critical { background: var(--red); }
+.section { border-bottom: 1px solid var(--border); }
+.section:last-child { border-bottom: none; }
+.section-header {
+  padding: 14px 24px; display: flex; align-items: center; gap: 10px; background: var(--surface-raised);
+}
+.section-label { font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; }
+.section-framework { font-size: 11px; color: var(--text-dim); font-weight: 400; }
+.section-bar { width: 3px; height: 16px; border-radius: 2px; }
+.section-bh .section-bar { background: var(--section-bh); }
+.section-bh .section-label { color: var(--section-bh); }
+.section-process .section-bar { background: var(--section-process); }
+.section-process .section-label { color: var(--section-process); }
+.section-system .section-bar { background: var(--section-system); }
+.section-system .section-label { color: var(--section-system); }
+.signal-row {
+  padding: 14px 24px; border-bottom: 1px solid rgba(42, 58, 92, 0.5);
+  display: grid; grid-template-columns: 14px 1fr auto; gap: 14px; align-items: start;
+}
+.signal-row:last-child { border-bottom: none; }
+.signal-info { min-width: 0; }
+.signal-name { font-size: 14px; font-weight: 500; color: var(--text); }
+.signal-context { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+.signal-context .stakeholder { color: var(--accent); margin-right: 8px; }
+.signal-description { font-size: 12px; color: var(--text-dim); margin-top: 4px; line-height: 1.4; }
+.signal-metrics { text-align: right; white-space: nowrap; }
+.signal-value { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.signal-value.healthy { color: var(--green); }
+.signal-value.warning { color: var(--yellow); }
+.signal-value.critical { color: var(--red); }
+.signal-target { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+.signal-prov {
+  font-size: 9px; font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase;
+  padding: 1px 6px; border-radius: 8px; margin-left: 6px; vertical-align: middle;
+}
+.signal-prov.prov-extracted { background: rgba(46,125,50,0.15); color: #4caf50; }
+.signal-prov.prov-inferred { background: rgba(33,150,243,0.15); color: #42a5f5; }
+.signal-prov.prov-constructed { background: rgba(255,152,0,0.15); color: #ffa726; }
+.provenance {
+  padding: 16px 24px; border-top: 1px solid var(--border);
+  font-size: 11px; color: var(--text-dim);
+}
+&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;div class=&quot;toggle-bar&quot;&gt;
+  &lt;label&gt;&lt;input type=&quot;checkbox&quot; id=&quot;t&quot;&gt; Show field sources&lt;/label&gt;
+  &lt;span style=&quot;color: var(--text-dim);&quot;&gt;Off = consumer view &amp;middot; On = data lineage&lt;/span&gt;
+&lt;/div&gt;
+&lt;script&gt;document.getElementById(&#x27;t&#x27;).addEventListener(&#x27;change&#x27;,function(){document.body.classList.toggle(&#x27;show-src&#x27;,this.checked)})&lt;/script&gt;
+&lt;div class=&quot;panel&quot;&gt;
+  &lt;div class=&quot;panel-header&quot;&gt;
+    &lt;div&gt;
+      &lt;div class=&quot;panel-title&quot;&gt;Splunk Cloud Enterprise Logging &amp;middot; Observability Platform&lt;/div&gt;
+      &lt;div class=&quot;panel-subtitle&quot;&gt;Health Overview &amp;middot; 8 signals across 3 layers&lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;overall-status healthy&quot;&gt;
+      &lt;div class=&quot;status-dot healthy&quot;&gt;&lt;/div&gt;
+      HEALTHY
+    &lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class=&quot;section section-bh&quot;&gt;
+    &lt;div class=&quot;section-header&quot;&gt;
+      &lt;div class=&quot;section-bar&quot;&gt;&lt;/div&gt;
+      &lt;span class=&quot;section-label&quot;&gt;Business Health&lt;/span&gt;
+      &lt;span class=&quot;section-framework&quot;&gt;APQC &amp;mdash; Effectiveness&lt;/span&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;signal-row&quot;&gt;
+      &lt;div class=&quot;status-dot healthy&quot; style=&quot;margin-top: 4px;&quot;&gt;&lt;/div&gt;
+      &lt;div class=&quot;signal-info&quot;&gt;
+        &lt;div class=&quot;signal-name&quot;&gt;Ingest Latency Compliance &lt;span class=&quot;signal-prov prov-extracted&quot;&gt;Extracted&lt;/span&gt;&lt;/div&gt;
+        &lt;div class=&quot;signal-context&quot;&gt;&lt;span class=&quot;stakeholder&quot;&gt;Platform Operations&lt;/span&gt;&lt;/div&gt;
+        &lt;div class=&quot;signal-description&quot;&gt;Log data arriving within 30 seconds — are dashboards and alerts working with fresh data?&lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;signal-metrics&quot;&gt;
+        &lt;div class=&quot;signal-value healthy&quot;&gt;99.9%&lt;/div&gt;
+        &lt;div class=&quot;signal-target&quot;&gt;target &amp;ge; 99.9%&lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;signal-row&quot;&gt;
+      &lt;div class=&quot;status-dot healthy&quot; style=&quot;margin-top: 4px;&quot;&gt;&lt;/div&gt;
+      &lt;div class=&quot;signal-info&quot;&gt;
+        &lt;div class=&quot;signal-name&quot;&gt;Alert Execution Success Rate &lt;span class=&quot;signal-prov prov-extracted&quot;&gt;Extracted&lt;/span&gt;&lt;/div&gt;
+        &lt;div class=&quot;signal-context&quot;&gt;&lt;span class=&quot;stakeholder&quot;&gt;Platform Operations&lt;/span&gt;&lt;/div&gt;
+        &lt;div class=&quot;signal-description&quot;&gt;Scheduled searches executing reliably — are our automated alerts and reports running?&lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;signal-metrics&quot;&gt;
+        &lt;div class=&quot;signal-value healthy&quot;&gt;99.9%&lt;/div&gt;
+        &lt;div class=&quot;signal-target&quot;&gt;target &amp;ge; 99.9%&lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;signal-row&quot;&gt;
+      &lt;div class=&quot;status-dot healthy&quot; style=&quot;margin-top: 4px;&quot;&gt;&lt;/div&gt;
+      &lt;div class=&quot;signal-info&quot;&gt;
+        &lt;div class=&quot;signal-name&quot;&gt;Ad-hoc Search Runtime Compliance &lt;span class=&quot;signal-prov prov-extracted&quot;&gt;Extracted&lt;/span&gt;&lt;/div&gt;
+        &lt;div class=&quot;signal-context&quot;&gt;&lt;span class=&quot;stakeholder&quot;&gt;Downstream Banking Customers&lt;/span&gt; &lt;span class=&quot;stakeholder&quot;&gt;Executive Leadership&lt;/span&gt; &lt;span class=&quot;stakeholder&quot;&gt;LOB End Users&lt;/span&gt; &lt;span class=&quot;stakeholder&quot;&gt;LOB Engineering Teams&lt;/span&gt; &lt;span class=&quot;stakeholder&quot;&gt;Platform Operations&lt;/span&gt;&lt;/div&gt;
+        &lt;div class=&quot;signal-description&quot;&gt;Troubleshooting queries completing under 20 seconds — at 90%, most sessions hit a wall.&lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;signal-metrics&quot;&gt;
+        &lt;div class=&quot;signal-value healthy&quot;&gt;98%&lt;/div&gt;
+        &lt;div class=&quot;signal-target&quot;&gt;target &amp;ge; 98%&lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;signal-row&quot;&gt;
+      &lt;div class=&quot;status-dot healthy&quot; style=&quot;margin-top: 4px;&quot;&gt;&lt;/div&gt;
+      &lt;div class=&quot;signal-info&quot;&gt;
+        &lt;div class=&quot;signal-name&quot;&gt;Ad-hoc Search Immediate Availability &lt;span class=&quot;signal-prov prov-extracted&quot;&gt;Extracted&lt;/span&gt;&lt;/div&gt;
+        &lt;div class=&quot;signal-context&quot;&gt;&lt;span class=&quot;stakeholder&quot;&gt;Downstream Banking Customers&lt;/span&gt; &lt;span class=&quot;stakeholder&quot;&gt;LOB End Users&lt;/span&gt; &lt;span class=&quot;stakeholder&quot;&gt;LOB Engineering Teams&lt;/span&gt; &lt;span class=&quot;stakeholder&quot;&gt;Platform Operations&lt;/span&gt;&lt;/div&gt;
+        &lt;div class=&quot;signal-description&quot;&gt;Searches starting immediately — at 88%, over 130K searches per day wait in queue.&lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;signal-metrics&quot;&gt;
+        &lt;div class=&quot;signal-value healthy&quot;&gt;99%&lt;/div&gt;
+        &lt;div class=&quot;signal-target&quot;&gt;target &amp;ge; 99%&lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class=&quot;section section-process&quot;&gt;
+    &lt;div class=&quot;section-header&quot;&gt;
+      &lt;div class=&quot;section-bar&quot;&gt;&lt;/div&gt;
+      &lt;span class=&quot;section-label&quot;&gt;Process&lt;/span&gt;
+      &lt;span class=&quot;section-framework&quot;&gt;Golden Signals &amp;mdash; Errors&lt;/span&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;signal-row&quot;&gt;
+      &lt;div class=&quot;status-dot healthy&quot; style=&quot;margin-top: 4px;&quot;&gt;&lt;/div&gt;
+      &lt;div class=&quot;signal-info&quot;&gt;
+        &lt;div class=&quot;signal-name&quot;&gt;Per-Indexer Search Completion Rate &lt;span class=&quot;signal-prov prov-inferred&quot;&gt;Inferred&lt;/span&gt;&lt;/div&gt;
+        &lt;div class=&quot;signal-context&quot;&gt;&lt;span class=&quot;stakeholder&quot;&gt;LOB End Users&lt;/span&gt; &lt;span class=&quot;stakeholder&quot;&gt;LOB Engineering Teams&lt;/span&gt; &lt;span class=&quot;stakeholder&quot;&gt;Platform Operations&lt;/span&gt;&lt;/div&gt;
+        &lt;div class=&quot;signal-description&quot;&gt;Indexers actually completing searches — catches the &amp;#x27;alive but not serving&amp;#x27; gap that caused the May 5th cascade.&lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;signal-metrics&quot;&gt;
+        &lt;div class=&quot;signal-value healthy&quot;&gt;99.5%&lt;/div&gt;
+        &lt;div class=&quot;signal-target&quot;&gt;target &amp;ge; 99.5%&lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;signal-row&quot;&gt;
+      &lt;div class=&quot;status-dot healthy&quot; style=&quot;margin-top: 4px;&quot;&gt;&lt;/div&gt;
+      &lt;div class=&quot;signal-info&quot;&gt;
+        &lt;div class=&quot;signal-name&quot;&gt;Flush Backlog Health &lt;span class=&quot;signal-prov prov-inferred&quot;&gt;Inferred&lt;/span&gt;&lt;/div&gt;
+        &lt;div class=&quot;signal-context&quot;&gt;&lt;span class=&quot;stakeholder&quot;&gt;Platform Operations&lt;/span&gt;&lt;/div&gt;
+        &lt;div class=&quot;signal-description&quot;&gt;Indexing pipeline keeping up — a growing backlog predicts 18-hour shutdowns and data risk.&lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;signal-metrics&quot;&gt;
+        &lt;div class=&quot;signal-value healthy&quot;&gt;10%&lt;/div&gt;
+        &lt;div class=&quot;signal-target&quot;&gt;target &amp;ge; 10%&lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;signal-row&quot;&gt;
+      &lt;div class=&quot;status-dot healthy&quot; style=&quot;margin-top: 4px;&quot;&gt;&lt;/div&gt;
+      &lt;div class=&quot;signal-info&quot;&gt;
+        &lt;div class=&quot;signal-name&quot;&gt;Bucket Map Stability &lt;span class=&quot;signal-prov prov-inferred&quot;&gt;Inferred&lt;/span&gt;&lt;/div&gt;
+        &lt;div class=&quot;signal-context&quot;&gt;&lt;span class=&quot;stakeholder&quot;&gt;LOB Engineering Teams&lt;/span&gt; &lt;span class=&quot;stakeholder&quot;&gt;Platform Operations&lt;/span&gt;&lt;/div&gt;
+        &lt;div class=&quot;signal-description&quot;&gt;Cluster stability — a rebuild spike is the early warning signal before search degrades.&lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;signal-metrics&quot;&gt;
+        &lt;div class=&quot;signal-value healthy&quot;&gt;5%&lt;/div&gt;
+        &lt;div class=&quot;signal-target&quot;&gt;target &amp;ge; 5%&lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class=&quot;section section-system&quot;&gt;
+    &lt;div class=&quot;section-header&quot;&gt;
+      &lt;div class=&quot;section-bar&quot;&gt;&lt;/div&gt;
+      &lt;span class=&quot;section-label&quot;&gt;System&lt;/span&gt;
+      &lt;span class=&quot;section-framework&quot;&gt;USE &amp;mdash; Utilization&lt;/span&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;signal-row&quot;&gt;
+      &lt;div class=&quot;status-dot healthy&quot; style=&quot;margin-top: 4px;&quot;&gt;&lt;/div&gt;
+      &lt;div class=&quot;signal-info&quot;&gt;
+        &lt;div class=&quot;signal-name&quot;&gt;Indexer Infrastructure Health &lt;span class=&quot;signal-prov prov-inferred&quot;&gt;Inferred&lt;/span&gt;&lt;/div&gt;
+        &lt;div class=&quot;signal-context&quot;&gt;&lt;span class=&quot;stakeholder&quot;&gt;LOB Engineering Teams&lt;/span&gt; &lt;span class=&quot;stakeholder&quot;&gt;Platform Operations&lt;/span&gt;&lt;/div&gt;
+        &lt;div class=&quot;signal-description&quot;&gt;Indexer fleet health — at 239 bare-metal machines, hardware degradation is a when, not an if.&lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;signal-metrics&quot;&gt;
+        &lt;div class=&quot;signal-value healthy&quot;&gt;99.5%&lt;/div&gt;
+        &lt;div class=&quot;signal-target&quot;&gt;target &amp;ge; 99.5%&lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class=&quot;provenance&quot;&gt;
+    &lt;span&gt;Source: wf-splunk-logging &amp;middot; Renderer: render_dashboard_view.py&lt;/span&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+"></iframe></div>
+<div id="tab-refs" class="tab-panel">
+<section class="section think-section">
+  <h2>Prior art referenced in this analysis</h2>
+  <p class="think-p">Grouped by the expertise that uses them &mdash; the same three roles from the Framework tab.</p>
+
+  <h3 class="ref-group">Requirements engineer</h3>
+  <table class="ref-table">
+    <thead>
+      <tr><th>Framework</th><th>What it is</th><th>What it does here</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>ArchiMate Motivation Extension</strong></td>
+        <td>Part of the ArchiMate enterprise architecture standard. Models why an organization does what it does &mdash; stakeholders, their goals, and what drives requirements.</td>
+        <td>Structures the reasoning chain &mdash; stakeholder &rarr; expectation &rarr; requirement &rarr; measurable need.</td>
+      </tr>
+      <tr>
+        <td><strong>GQM</strong> (Goal-Question-Metric)</td>
+        <td>Measurement framework from software engineering research. Start with a goal, derive questions, then identify metrics that answer them.</td>
+        <td>The decomposition pattern &mdash; a business goal becomes a question (&ldquo;is this sub-capability healthy?&rdquo;) which becomes a measurable signal.</td>
+      </tr>
+      <tr>
+        <td><strong>Meyer Design by Contract</strong></td>
+        <td>Software design principle where components specify what they require and what they guarantee.</td>
+        <td>Frames expectations as contracts &mdash; each one has a condition that can be verified and a consequence when it&rsquo;s violated.</td>
+      </tr>
+      <tr>
+        <td><strong>SEI Quality Attribute Scenarios</strong></td>
+        <td>Structured format from the Software Engineering Institute for describing quality requirements &mdash; stimulus, environment, response, measure.</td>
+        <td>Shapes how needs are written &mdash; what triggers it, what the expected behavior is, how to measure whether it&rsquo;s met.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3 class="ref-group">Observability practitioner</h3>
+  <table class="ref-table">
+    <thead>
+      <tr><th>Framework</th><th>What it is</th><th>What it does here</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>APQC Process Classification</strong></td>
+        <td>Industry-standard taxonomy for business processes. Common vocabulary for how work gets done across organizations.</td>
+        <td>Classifies business health signals by dimension &mdash; effectiveness, efficiency, adaptability &mdash; so each signal measures a distinct aspect of whether a capability is doing its job.</td>
+      </tr>
+      <tr>
+        <td><strong>Google Golden Signals</strong></td>
+        <td>Four categories of metrics &mdash; latency, traffic, errors, saturation &mdash; from the Google SRE handbook. Widely adopted for monitoring distributed systems.</td>
+        <td>Classifies process-layer signals. Where APQC measures business outcomes, Golden Signals measure the operational behaviors that produce them.</td>
+      </tr>
+      <tr>
+        <td><strong>SRE SLO Practice</strong></td>
+        <td>Site Reliability Engineering approach to service level objectives. Defines how to set measurable targets for service behavior.</td>
+        <td>Shapes every signal &mdash; each one has a measurement, a threshold, an owner, and a defined response when the threshold is breached.</td>
+      </tr>
+      <tr>
+        <td><strong>SLODLC</strong> (SLO Development Lifecycle)</td>
+        <td>Lifecycle model for developing service level objectives &mdash; discover, define, implement, operate, refine.</td>
+        <td>Positions this analysis in the Discover phase &mdash; identifying what to measure before committing to targets or building dashboards.</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+</div>
+
+<footer>Generated from BOS onboarding &middot; for review, not a validated record.</footer>
+<script>
+document.getElementById('src-toggle').addEventListener('change',function(){
+  document.body.classList.toggle('show-src',this.checked);
+});
+document.querySelectorAll('.tab-btn').forEach(function(btn){
+  btn.addEventListener('click',function(){
+    document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});
+    document.querySelectorAll('.tab-panel').forEach(function(p){p.classList.remove('active');});
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.tab).classList.add('active');
+  });
+});
+</script>
+</body>
+</html>
