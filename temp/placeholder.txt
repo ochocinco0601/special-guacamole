@@ -1,2 +1,13 @@
+
+---
+status: todo              # todo | in progress | done | cancelled
+labels: []                # freeform types, e.g. tech-debt, presentation, follow-up
+due: 2026-07-10           # optional — only on items with a real date
+---
+# Short title
+What the work is.
+Why: what outcome this serves.        # optional
+Waiting: who/what it's blocked on.    # optional
+Next: the immediate next action.
 -
  
